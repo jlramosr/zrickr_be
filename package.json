@@ -4,12 +4,15 @@
   "description": "Zrickr Backend",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node src/app.js"
+    "test": "node src/app.js",
+    "uglify": "uglifyjs src/app.js -m -c -o build/app.js",
+    "copy-files": "cp src/*.html build/ && cp src/*.css build/",
+    "build": "npm run copy-files && npm run uglifyjs"
   },
   "author": "Jose Ramos",
   "license": "ISC",
   "dependencies": {
-    "express": "^4.13.4"
+    "express": "^4.13.4",
+    "uglifyjs": "^2.4.10"
   }
 }

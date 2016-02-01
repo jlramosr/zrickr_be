@@ -2,9 +2,9 @@
   "name": "zrickr_be",
   "version": "1.0.0",
   "description": "Zrickr Backend",
-  "main": "index.js",
+  "main": "src/app.js",
   "scripts": {
-    "test": "node src/app.js",
+    "test": "nodemon src/app.js",
     "uglify": "uglifyjs src/app.js -m -c -o build/app.js",
     "copy-files": "cp src/*.html build/ && cp src/*.css build/",
     "build": "npm run copy-files && npm run uglifyjs"
@@ -13,6 +13,9 @@
   "license": "ISC",
   "dependencies": {
     "express": "^4.13.4",
+    "jade": "^1.11.0",
+    "mongodb": "^2.1.4",
+    "monk": "^1.0.1",
     "uglifyjs": "^2.4.10"
   }
 }

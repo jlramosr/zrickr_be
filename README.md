@@ -42,7 +42,11 @@ Create directory "D:\data\log"
 
 Add "C:\Program Files\MongoDB\Server\3.2\bin" to the "Path" Windows environment variable
 
-Excute on console: `mongod --config "C:\Program Files\MongoDB\Server\3.2\bin\mongod.conf" --install`
+Execute on console: `mongod --config "C:\Program Files\MongoDB\Server\3.2\bin\mongod.conf" --install`
+
+### Node modules
+
+npm install -g nodemon node-inspector
 
 ## Proyect Installation
 
@@ -50,4 +54,4 @@ git clone https://github.com/jlramosr/zrickr_be.git zrickr_be
 
 cd zrickr_be && npm install
 
-npm start
+npm ... (see tasks list on package.json)

@@ -2,20 +2,26 @@
   "name": "zrickr_be",
   "version": "1.0.1",
   "description": "Zrickr Backend",
-  "main": "src/app.js",
+  "main": "app/app.js",
   "scripts": {
-    "test": "nodemon src/app.js",
-    "uglify": "uglifyjs src/app.js -m -c -o build/app.js",
-    "copy-files": "cp src/*.html build/ && cp src/*.css build/",
-    "build": "npm run copy-files && npm run uglifyjs"
+    "test": "nodemon app/app.js",
+    "uglify": "uglifyjs app/app.js -m -c -o build/app.js",
+    "copy-files": "cp app/*.html build/ && cp app/*.css build/",
+    "build": "npm run copy-files && npm run uglify",
+    "git-commit": "git add -A . && git commit -a -m 'gh-pages update'",
+    "git-push": "git push origin gh-pages --force && git checkout master",
+    "deploy": "npm run build && npm run git-commit && npm run git-push"
   },
   "author": "Jose Ramos",
+  "email": "jlramosr@gmail.com",
   "license": "ISC",
   "dependencies": {
     "express": "^4.13.4",
     "jade": "^1.11.0",
     "mongodb": "^2.1.4",
-    "monk": "^1.0.1",
+    "monk": "^1.0.1"
+  },
+  "devDependencies": {
     "uglifyjs": "^2.4.10"
   }
 }

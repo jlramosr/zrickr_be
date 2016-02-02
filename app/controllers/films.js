@@ -1,6 +1,6 @@
 var express = require('express'),
-    router = express.Router(),
-    db = require('monk')('localhost/pruebas');
+    db = require('monk')('localhost/pruebas'),
+    router = express.Router();
 
 router.get('/', function(req, res, next) {
   var posts = db.get('posts');

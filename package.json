@@ -9,6 +9,9 @@
     "copy-files": "cp src/*.html build/ && cp src/*.css build/",
     "build": "npm run copy-files && npm run uglifyjs"
   },
+  "engines": {
+    "node": "4.2.4"
+  }
   "author": "Jose Ramos",
   "license": "ISC",
   "dependencies": {

@@ -38,6 +38,8 @@ Create and edit file "C:\Program Files\MongoDB\Server\3.2\bin\mongod.conf" with 
 
 `rest=false`
 
+`auth=true`
+
 Create directory "D:\data\log"
 
 Add "C:\Program Files\MongoDB\Server\3.2\bin" to the "Path" Windows environment variable

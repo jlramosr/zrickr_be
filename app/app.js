@@ -3,14 +3,18 @@
 var express = require('express'),
     path = require('path'),
     app = express(),
-    index_controller = require(path.join(__dirname, 'controllers', 'index')),
-    films_controller = require(path.join(__dirname, 'controllers', 'films'));
-
-app.set('views', path.join(__dirname, 'views'));
-app.set('view engine', 'jade');
+    path_controllers = 'controllers',
+    path_views = 'views',
+    index_controller = require(path.join(__dirname, path_controllers, 'index')),
+    films_controller = require(path.join(__dirname, path_controllers, 'films')),
+    users_controller = require(path.join(__dirname, path_controllers, 'users'));
 
 app.use('/', index_controller);
 app.use('/films', films_controller);
+app.use('/users', users_controller);
+
+app.set('views', path.join(__dirname, path_views));
+app.set('view engine', 'jade');
 
 app.use(function(req, res, next) {
   var err = new Error('Not Found');

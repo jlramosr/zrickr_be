@@ -1,6 +1,6 @@
 {
   "name": "zrickr_be",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Zrickr Backend",
   "main": "app/app.js",
   "scripts": {
@@ -10,7 +10,8 @@
     "build": "npm run copy-files && npm run uglify",
     "git-commit": "git add -A . && git commit -a -m 'gh-pages update'",
     "git-push": "git push origin gh-pages --force && git checkout master",
-    "deploy": "npm run build && npm run git-commit && npm run git-push"
+    "deploy": "npm run build && npm run git-commit && npm run git-push",
+    "gulp": "gulp default"
   },
   "author": "Jose Ramos",
   "email": "jlramosr@gmail.com",
@@ -22,6 +23,10 @@
     "monk": "^1.0.1"
   },
   "devDependencies": {
+    "gulp": "^3.9.0",
+    "gulp-concat": "^2.6.0",
+    "gulp-rename": "^1.2.2",
+    "gulp-uglify": "^1.5.1",
     "uglifyjs": "^2.4.10"
   }
 }

@@ -4,34 +4,69 @@ var express     = require('express'),
     path_models = '../models',
     model       = require(path.join(__dirname, path_models, 'films'));
 
-router.get('/', function(req, res, next) {
-  var films = model.getFilms();
-  res.json(films);
-});
+var _getFilmsJSON = function(res, filter) {
+  model.findFilms(filter).then(function(films) {
+    res.json(films);
+  }).catch(function(err) {
+    res.json(err);
+  });
+}
 
-router.get('/insert/:title?', function(req, res, next) {
-  var inf = {}
-  var new_title = req.params.title
-  if (new_title !== undefined) {
-    inf = {
-      title: new_title,
-      year: 1999
-    };
-    model.insertFilm(inf);
+var _insertFilm = function(information) {
+  model.insertFilm(information);
+}
+
+var _updateFilm = function(filter, information) {
+  model.updateFilm(filter, information);
+}
+
+var _deleteFilm = function(information) {
+  model.deleteFilm(information);
+}
+
+var controller = {
+  select: function (req, res, next) {
+    var filter = {};
+    var title = req.params.title;
+    if (title !== undefined) {
+      filter = {
+        title: title
+      };
+    }
+    _getFilmsJSON(res, filter);
+  },
+
+  insert: function (req, res, next) {
+    console.log(req.params);
+    var information = req.body;
+    if (information) {
+      _insertFilm(information);
+    }
+    _getFilmsJSON(res, information);
+  },
+
+  update: function(req, res, next) {
+    var filter = {};
+    var title = req.params.title;
+    if (title !== undefined) {
+      filter = {
+        title: title
+      };
+    }
+    var information = req.body;
+    if (information) {
+      _updateFilm(filter, information);
+    }
+    _getFilmsJSON(res, information);
+  },
+
+  delete: function(req, res, next) {
+    var information = req.body;
+    if (information) {
+      _deleteFilm(information);
+    }
+    _getFilmsJSON(res);
   }
-  res.json(model.getFilms(inf));
-});
+}
 
-router.get('/delete/:title?', function(req, res, next) {
-  var filter = {}
-  if (req.params.title !== undefined) {
-    var del_title = req.params.title;
-    filter = {
-      title: del_title
-    };
-  }
-  model.films.remove(filter);
-  res.json(model.getFilms());
-});
-
-module.exports = router;
+module.exports = controller;

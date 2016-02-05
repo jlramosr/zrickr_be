@@ -1,22 +1,23 @@
 {
   "name": "zrickr_be",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Zrickr Backend",
-  "main": "app/app.js",
+  "main": "app/server.js",
   "scripts": {
-    "test": "nodemon app/app.js",
-    "uglify": "uglifyjs app/app.js -m -c -o build/app.js",
-    "copy-files": "cp app/*.html build/ && cp app/*.css build/",
-    "build": "npm run copy-files && npm run uglify",
+    "start": "nodemon app/server.js",
+    "debug1": "node-inspector app/server.js",
+    "debug2": "node --debug-brk app/server.js",
+    "test": "mocha --env 'test' app/test/*",
+    "build": "gulp build",
     "git-commit": "git add -A . && git commit -a -m 'gh-pages update'",
     "git-push": "git push origin gh-pages --force && git checkout master",
-    "deploy": "npm run build && npm run git-commit && npm run git-push",
-    "gulp": "gulp default"
+    "deploy": "npm run build && npm run git-commit && npm run git-push"
   },
   "author": "Jose Ramos",
   "email": "jlramosr@gmail.com",
   "license": "ISC",
   "dependencies": {
+    "body-parser": "^1.14.2",
     "express": "^4.13.4",
     "jade": "^1.11.0",
     "mongodb": "^2.1.4",
@@ -27,6 +28,7 @@
     "gulp-concat": "^2.6.0",
     "gulp-rename": "^1.2.2",
     "gulp-uglify": "^1.5.1",
-    "uglifyjs": "^2.4.10"
+    "mocha": "^2.4.5",
+    "node-inspector": "^0.12.5"
   }
 }

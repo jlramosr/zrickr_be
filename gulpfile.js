@@ -5,11 +5,11 @@ var gulp    = require('gulp'),
     rename  = require('gulp-rename'),
     uglify  = require('gulp-uglify');
 
-gulp.task("default", ["cleanScripts"], function() {
-  console.log("This is the default task!");
+gulp.task("default", [], function() {
+  console.log("This is the default task");
 });
 
-gulp.task("cleanScripts", function() {
+gulp.task("build", function() {
   gulp.src( [
     'app/app.js'
   ])
@@ -18,4 +18,5 @@ gulp.task("cleanScripts", function() {
     .pipe(rename('app.js'))
     .pipe(uglify())
     .pipe(gulp.dest('build'));
+    //copy to build: package.json, src/*, cd build && npm install --production
 });

@@ -1,17 +1,19 @@
-var db = require('monk')('localhost/zrickr', {
-                            username: 'mongo',
-                            password: '1234'
-                        }),
+var db = require('../helpers/db'),
     films_collection = db.get('films');
 
-var getFilms = function (filter) {
+var findFilms = function (filter) {
   if (filter === undefined) {
     filter = {};
   }
-  var films = {};
-  films_collection.find(filter, {sort: {title: 1}}, function (err, docs) {
+  return new Promise(function(resolve, reject) {
+    films_collection.find(filter, {sort: {title: 1}}, function (err, docs) {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(docs);
+      }
+    });
   });
-  return films;
 }
 
 var insertFilm = function (information) {
@@ -21,5 +23,24 @@ var insertFilm = function (information) {
   films_collection.insert(information);
 }
 
-exports.getFilms = getFilms;
-exports.insertFilm = insertFilm;
+var updateFilm = function (filter,information) {
+  if (information === undefined) {
+    information = {};
+  }
+  if (filter === undefined) {
+    filter = {};
+  }
+  films_collection.findAndModify(filter, information);
+}
+
+var deleteFilm = function (information) {
+  if (information === undefined) {
+    information = {};
+  }
+  films_collection.remove(information);
+}
+
+module.exports.findFilms = findFilms;
+module.exports.insertFilm = insertFilm;
+module.exports.updateFilm = updateFilm;
+module.exports.deleteFilm = deleteFilm;

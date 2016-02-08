@@ -1,46 +1,26 @@
 var db = require('../helpers/db'),
     films_collection = db.get('films');
 
-var findFilms = function (filter) {
-  if (filter === undefined) {
-    filter = {};
+var model = {
+  findFilms: function (filter) {
+    return films_collection.find(filter, {sort: {title: 1}});
+  },
+
+  getNumFilms: function(filter) {
+    return films_collection.count(filter);
+  },
+
+  insertFilm: function(information) {
+    return films_collection.insert(information);
+  },
+
+  updateFilm: function(filter,information) {
+    return films_collection.findAndModify(filter, information);
+  },
+
+  deleteFilm: function(information) {
+    return films_collection.remove(information);
   }
-  return new Promise(function(resolve, reject) {
-    films_collection.find(filter, {sort: {title: 1}}, function (err, docs) {
-      if (err) {
-        reject(err);
-      } else {
-        resolve(docs);
-      }
-    });
-  });
 }
 
-var insertFilm = function (information) {
-  if (information === undefined) {
-    information = {};
-  }
-  films_collection.insert(information);
-}
-
-var updateFilm = function (filter,information) {
-  if (information === undefined) {
-    information = {};
-  }
-  if (filter === undefined) {
-    filter = {};
-  }
-  films_collection.findAndModify(filter, information);
-}
-
-var deleteFilm = function (information) {
-  if (information === undefined) {
-    information = {};
-  }
-  films_collection.remove(information);
-}
-
-module.exports.findFilms = findFilms;
-module.exports.insertFilm = insertFilm;
-module.exports.updateFilm = updateFilm;
-module.exports.deleteFilm = deleteFilm;
+module.exports = model;

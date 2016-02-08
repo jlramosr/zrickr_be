@@ -1,13 +1,25 @@
+process.env.NODE_ENV = 'test';
 var assert      = require('assert'),
-    db          = require('../helpers/db'),
     path        = require('path'),
-    path_models = '../models',
-    model       = require(path.join(__dirname, path_models, 'films'));
+    model_controllers = '../models',
+    model       = require(path.join(__dirname, model_controllers, 'films'));
 
-describe('Environment', function() {
-  describe('#NODE_ENV', function () {
-    it('should return test as node environment', function () {
-      assert.equal('test', process.env.NODE_ENV);
+describe('Films', function() {
+  describe('#Insert', function() {
+    it('lala', function () {
+      /*
+      model.findFilms({}, function(films) {
+        console.log('hola');
+        assert.equal(1,films)
+        done();
+      });*/
+      /*
+      model.insertFilm({title:'holaholahola'});
+      model.getNumFilms({}).then(function(count) {
+          assert.equal(0,count);
+        }).catch(function(err) {
+          assert.equal(0,-1);
+        });*/
     });
   });
 });

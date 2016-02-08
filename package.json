@@ -7,7 +7,7 @@
     "start": "nodemon app/server.js",
     "debug1": "node-inspector app/server.js",
     "debug2": "node --debug-brk app/server.js",
-    "test": "mocha --env 'test' app/test/*",
+    "test": "mocha app/test/*",
     "build": "gulp build",
     "git-commit": "git add -A . && git commit -a -m 'gh-pages update'",
     "git-push": "git push origin gh-pages --force && git checkout master",

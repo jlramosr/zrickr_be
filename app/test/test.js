@@ -9,21 +9,3 @@ describe('Array', function() {
     });
   });
 });
-
-describe('Monk', function() {
-  describe('#connection', function () {
-    it("is easy to connect", function (done) {
-    		var db = monk('localhost/zrick');
-    		assert.notStrictEqual(db, undefined);
-    		done();
-    	});
-
-    	it("is easy to get hold of a collection", function (done) {
-    		var db = monk('localhost/testingMonk');
-    		var collection = db.get("films");
-    		assert.notStrictEqual(collection, undefined);
-    		done();
-    	});
-
-  });
-});

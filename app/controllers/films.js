@@ -1,27 +1,15 @@
-var express     = require('express'),
-    router      = express.Router(),
-    path        = require('path'),
-    path_models = '../models',
-    model       = require(path.join(__dirname, path_models, 'films'));
+var express  = require('express'),
+    router   = express.Router(),
+    model    = require('../models/films');
 
-function _replacerJSON(data) {
-  if (value === "" || value === null) {
-    return undefined;
-  }
-    return value;
-}
-
-var _cleanJSON = function(param) {
-  return JSON.stringify(param, _replacerJSON, 2);
-}
-
-var _getFilmsJSON = function(res, filter) {
+var _findAllFilms = function(res, filter) {
   var promise = model.findFilms(filter);
   promise.on('error', function(err) {
-    //res.json(err);});
+    console.log('Internal error(%d): %s', res.statusCode, err.message);
+    res.statusCode = 500;
+    return res.json({ error: 'Database error' });
   });
   promise.on('success', function(films) {
-    //res.json(films);
   });
   promise.on('complete', function(err, films) {
     res.json(films);
@@ -90,14 +78,30 @@ var controller = {
     _getNumFilms(res);
   },
   select: function (req, res, next) {
+    console.log("GET - /films");
+  	return model.find(function(err, films) {
+  		if (!err) {
+  			return res.json(films);
+  		}
+      else {
+        res.statusCode = 500;
+  			console.log('Internal error(%d): %s', res.statusCode, err.message);
+        return res.json({ error: 'Server error' });
+  		}
+  	});
+
+
+    /*
+    console.log("GET - /films");
     var filter = {};
     var title = req.params.title;
-    if (title !== undefined && !title) {
+    if (title !== undefined && title) {
       filter = {
         title: title
       };
     }
-    _getFilmsJSON(res, filter);
+    _findAllFilms(res, filter);
+    */
   },
 
   insert: function (req, res, next) {

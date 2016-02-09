@@ -1,26 +1,31 @@
-var db = require('../helpers/db'),
-    films_collection = db.get('films');
+var db = require('../helpers/db');
 
-var model = {
-  findFilms: function (filter) {
-    return films_collection.find(filter, {sort: {title: 1}});
-  },
 
-  getNumFilms: function(filter) {
-    return films_collection.count(filter);
-  },
+//Schemas
+var imagesSchema = new db.Schema ({
+  kind: { type: String, enum: ['thumbnail', 'detail'], required: true },
+  url: { type: String, required: true }
+});
 
-  insertFilm: function(information) {
-    return films_collection.insert(information);
-  },
+var filmSchema = new db.Schema ({
+  title: { type: String, require: true },
+  images: [imagesSchema],
+  genre: { type: String, enum: ['Thriller', 'Adventures', 'Drama'] },
+  colour: { type: String },
+  year: { type: Number, require: true },
+  summary:  { type: String },
+  modified: { type: Date, default: Date.now }
+});
 
-  updateFilm: function(filter,information) {
-    return films_collection.findAndModify(filter, information);
-  },
 
-  deleteFilm: function(information) {
-    return films_collection.remove(information);
-  }
-}
+//Validations
+filmSchema.path('title').validate(function (v) {
+    return ((v != "") && (v != null));
+});
 
-module.exports = model;
+filmSchema.path('year').validate(function (v) {
+    return ((v <= 3000) && (v >= 1000));
+});
+
+
+module.exports = db.model('Film', filmSchema);

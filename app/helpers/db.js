@@ -1,31 +1,38 @@
-var db,
-    env = process.env.NODE_ENV || 'development',
+var env = process.env.NODE_ENV || 'development',
     name_dbprod = 'zrickr',
     user_dbprod = 'mongo',
     pass_dbprod = '1234',
-    name_dbtest = 'pruebas',
+    name_dbtest = 'test',
     user_dbtest = 'mongo',
     pass_dbtest = '1234',
+    db = require("mongoose"),
     err = false;
 
-if ('development' == env) {
-  db = require('monk')('localhost/' + name_dbprod, {username: user_dbprod, password: pass_dbprod});
+var _startDB = function (namedb) {
+  db.connect('mongodb://localhost/' + namedb, function(err, res) {
+    if(err) {
+      console.log('ERROR: connecting to Database. ' + err);
+    } else {
+      console.log('Connected to Database ' + namedb);
+    }
+  });
 }
-else if ('production' == env) {
-  db = require('monk')('localhost/' + name_dbprod, {username: user_dbprod, password: pass_dbprod});
+
+if ('development' == env || 'production' == env) {
+  _startDB(name_dbprod);
 }
 else if ('test' == env) {
-  db = require('monk')('localhost/' + name_dbtest, {username: user_dbtest, password: pass_dbtest});
+  _startDB(name_dbtest);
 }
 else {
   err = true;
 }
 
 if (err) {
-  console.error("There's no environment to connect database");
+  console.error("There's no Environment to Connect Database");
 }
 else {
-  console.log("I'm on " + env + " environment");
+  console.log("I'm on " + env + " Environment");
 }
 
 module.exports = db;

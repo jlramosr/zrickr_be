@@ -6,20 +6,36 @@ var assert      = require('assert'),
 
 describe('Films', function() {
   describe('#Insert', function() {
-    it('lala', function () {
-      /*
-      model.findFilms({}, function(films) {
-        console.log('hola');
-        assert.equal(1,films)
-        done();
-      });*/
-      /*
-      model.insertFilm({title:'holaholahola'});
-      model.getNumFilms({}).then(function(count) {
+    it('films collection should have one more item after one film is inserted', function (done) {
+      var promise1 = model.getNumFilms({});
+      var promise2 = model.insertFilm({title:'Titanic'});
+      var promise3 = model.getNumFilms({});
+      var numFilmsBefore;
+      promise1.on('complete', function(err, count) {
+        numFilmsBefore = count;
+        promise2.on('complete', function(err, films) {
+          promise3.on('complete', function(err, count) {
+            assert.equal(numFilmsBefore + 1,count);
+            done();
+          });
+        });
+      });
+    });
+  });
+});
+
+describe('Films', function() {
+  describe('#Delete', function() {
+    it('films collection should have no items when we delete all items', function (done) {
+      var promise1 = model.deleteFilm({});
+      var promise2 = model.getNumFilms({});
+      var numFilmsBefore;
+      promise1.on('complete', function(err, numItemsDelete) {
+        promise2.on('complete', function(err, count) {
           assert.equal(0,count);
-        }).catch(function(err) {
-          assert.equal(0,-1);
-        });*/
+          done();
+        });
+      });
     });
   });
 });

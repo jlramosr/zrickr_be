@@ -1,6 +1,6 @@
 {
   "name": "zrickr_be",
-  "version": "1.0.3",
+  "version": "1.1.0",
   "description": "Zrickr Backend",
   "main": "app/server.js",
   "scripts": {
@@ -22,7 +22,7 @@
     "jade": "^1.11.0",
     "mongodb": "^2.1.4",
     "mongoose": "^4.4.2",
-    "monk": "^1.0.1"
+    "mongoose-timestamp": "^0.5.0"
   },
   "devDependencies": {
     "gulp": "^3.9.0",

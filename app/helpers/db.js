@@ -1,15 +1,19 @@
-var env = process.env.NODE_ENV || 'development',
-    name_dbprod = 'zrickr',
-    user_dbprod = 'mongo',
-    pass_dbprod = '1234',
-    name_dbtest = 'test',
-    user_dbtest = 'mongo',
-    pass_dbtest = '1234',
-    db = require("mongoose"),
-    err = false;
+var name_dbprod = 'zrickr';
+var user_dbprod = 'mongo';
+var pass_dbprod = '1234';
+var name_dbtest = 'test';
+var user_dbtest = 'mongo';
+var pass_dbtest = '1234';
+var env         = process.env.NODE_ENV || 'development';
+var err         = false;
+
+var mongoose = {
+  db: require('mongoose'),
+  timestamps: require('mongoose-timestamp')
+}
 
 var _startDB = function (namedb) {
-  db.connect('mongodb://localhost/' + namedb, function(err, res) {
+  mongoose.db.connect('mongodb://localhost/' + namedb, function(err, res) {
     if(err) {
       console.log('ERROR: connecting to Database. ' + err);
     } else {
@@ -35,4 +39,4 @@ else {
   console.log("I'm on " + env + " Environment");
 }
 
-module.exports = db;
+module.exports = mongoose;

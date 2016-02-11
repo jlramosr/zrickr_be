@@ -1,8 +1,9 @@
-var express = require('express');
-var router = express.Router();
+var express   = require('express');
 
-router.get('/', function(req, res, next) {
-  res.render('index', { title: 'Zrickr API REST'  });
-});
+var controller = {
+  get: function (req, res) {
+    res.render('index', { title: 'Zrickr API REST'  });
+  }
+}
 
-module.exports = router;
+module.exports = controller;

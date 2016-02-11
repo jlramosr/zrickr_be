@@ -1,5 +1,4 @@
-var assert = require('assert'),
-    monk = require("monk");
+var assert = require('assert');
 
 describe('Array', function() {
   describe('#indexOf()', function () {

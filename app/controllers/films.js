@@ -1,141 +1,151 @@
-var express  = require('express'),
-    router   = express.Router(),
-    model    = require('../models/films');
+var express   = require('express');
 
-var _findAllFilms = function(res, filter) {
-  var promise = model.findFilms(filter);
-  promise.on('error', function(err) {
-    console.log('Internal error(%d): %s', res.statusCode, err.message);
-    res.statusCode = 500;
-    return res.json({ error: 'Database error' });
-  });
-  promise.on('success', function(films) {
-  });
-  promise.on('complete', function(err, films) {
-    res.json(films);
-  });
-}
+var model = require('../models/films');
 
-var _getNumFilms = function(res, filter) {
-  var promise = model.getNumFilms(filter);
-  promise.on('error', function(err) {
-    //res.json(err);
-  });
-  promise.on('success', function(count) {
-    //res.json(count);
-  });
-  promise.on('complete', function(err, count) {
-    res.json(count);
-  });
-}
-
-var _insertFilm = function(res, information) {
-  var promise = model.insertFilm(information);
-  promise.on('error', function(err){
-    //res.json(err);
-  });
-  promise.on('success', function(films) {
-    //res.json(count);
-  });
-  promise.on('complete', function(err, films) {
-    res.json(films);
-  });
-}
-
-var _updateFilm = function(res, filter, information) {
-  var promise = model.updateFilm(filter, information);
-  promise.on('error', function(err) {
-    //res.json(err);
-  });
-  promise.on('success', function(film) {
-    //res.json(count);
-  });
-  promise.on('complete', function(err, film) {
-    if (film === null) {
-      res.json({});
+var _manageError = function (res, err, statusCode, messageConsole, messageJSON, summaryJSON) {
+  res.statusCode = statusCode;
+  var resJSON = { error: messageJSON };
+  if (summaryJSON) {
+    resJSON.summary = summaryJSON;
+  }
+  if (!err) {
+    console.log('%s(%d): %s', messageConsole, res.statusCode, "");
+  }
+  else {
+    if (!err.message) {
+      console.log('%s(%d): %s', messageConsole, res.statusCode, "");
     }
     else {
-      res.json(film);
+      console.log('%s(%d): %s', messageConsole, res.statusCode, err.message);
     }
-  });
-}
-
-var _deleteFilm = function(res, information) {
-  var promise = model.deleteFilm(information);
-  promise.on('error', function(err) {
-    res.json({});
-  });
-  promise.on('success', function(films) {
-    //res.json(films);
-  });
-  promise.on('complete', function(err, count) {
-    res.json(count);
-  });
+    if (err.errors && !summaryJSON) {
+      resJSON.summary = err.errors;
+    }
+  }
+  return res.json(resJSON);
 }
 
 var controller = {
-  count: function (req, res, next) {
-    _getNumFilms(res);
-  },
-  select: function (req, res, next) {
-    console.log("GET - /films");
-  	return model.find(function(err, films) {
-  		if (!err) {
-  			return res.json(films);
-  		}
-      else {
-        res.statusCode = 500;
-  			console.log('Internal error(%d): %s', res.statusCode, err.message);
-        return res.json({ error: 'Server error' });
-  		}
-  	});
-
-
-    /*
-    console.log("GET - /films");
-    var filter = {};
-    var title = req.params.title;
-    if (title !== undefined && title) {
-      filter = {
-        title: title
-      };
+  findFilms: function (req, res) {
+    var id = req.params.id;
+    //All Films
+    if (id === undefined) {
+      console.log("GET - /films");
+      return model.find(function(err, films) {
+    		if (!err) {
+          console.log("Films founded!(%d)", res.statusCode);
+    			return res.json(films);
+    		}
+        return _manageError(res, err, 500, 'Internal Error', 'Server Error');
+    	});
     }
-    _findAllFilms(res, filter);
-    */
-  },
-
-  insert: function (req, res, next) {
-    var information = req.body;
-    console.log(typeof information);
-    if (information !== undefined && JSON.stringify(information) !== "{}") {
-      _insertFilm(res, information);
-    }
+    //Film by id
     else {
-      res.send(JSON.parse("{}"));
+      console.log("GET - /films/:id");
+      return model.findById(id, function(err, film) {
+        if (!film) return _manageError(res, err, 404, 'Film not found', 'Not found');
+        if (!err) {
+          console.log("Film founded!(%d)", res.statusCode);
+          console.log(film.hola);
+          return res.json(film);
+        }
+        return _manageError(res, err, 500, 'Internal Error', 'Server Error');
+      });
     }
   },
 
-  update: function(req, res, next) {
-    var filter = {};
-    var title = req.params.title;
-    if (title !== undefined && title) {
-      filter = {
-        title: title
-      };
+  insertFilm: function (req, res) {
+    console.log('POST - /films');
+    try {
+      var film = model.createFilm(req.body);
     }
-    var information = req.body;
-    if (information === undefined || !information) {
-      informacion = {};
-    }
-    _updateFilm(res, filter, information);
+    catch (err) { return _manageError(res, err, 422, 'Syntax Error', 'Syntax Error'); }
+
+    film.save(function (err) {
+      if (!err) {
+        console.log("Film created!(%d)", res.statusCode);
+        return res.json(film);
+      }
+      else {
+        if (err.name == 'ValidationError') return _manageError(res, err, 400, 'Internal Error', 'Validation Error');
+        return _manageError(res, err, 500, 'Internal Error', 'Server Error');
+      }
+    });
   },
 
-  delete: function(req, res, next) {
-    var information = req.body;
-    if (information === undefined || !information) {
-      informacion = {};
+  updateFilm: function(req, res) {
+    var id = req.params.id;
+    //All Films
+    if (!id) {
+      console.log("PUT - /films");
+      var jsonCondition = {}
+        , jsonUpdate = req.body
+        , options = { multi: true };
+      return model.update(jsonCondition, jsonUpdate, options, function(err, numAffected) {
+        if (!err) {
+          console.log("Films updated!(%d)", res.statusCode);
+          return res.json( { numAffected: numAffected.nModified });
+        }
+        return _manageError(res, err, 500, 'Internal Error', 'Server Error');
+      });
     }
-    _deleteFilm(res, information);
+    //Film by id
+    else {
+      console.log("PUT - /films/:id");
+      return model.findById(id, function(err, film) {
+        if(!film) return _manageError(res, err, 404, 'Film not found', 'Not found');
+        if(!err) {
+          try {
+            film.updateFilm(req.body);
+          }
+          catch (err) { return _manageError(res, err, 422, 'Syntax Error', 'Syntax Error'); }
+          return film.save(function(err) {
+            if(!err) {
+                console.log("Film updated!(%d)", res.statusCode);
+                return res.json(film);
+            }
+            else {
+              if (err.name == 'ValidationError') return _manageError(res, err, 400, 'Internal error', 'Validation error');
+              return _manageError(res, err, 500, 'Internal error', 'Server error');
+            }
+          });
+        }
+      });
+    }
+  },
+
+  deleteFilms: function(req, res) {
+    var id = req.params.id;
+    //All Films
+    if (!id) {
+      var jsonCondition = {};
+      var promise = model.count(jsonCondition, function (err,count) {
+        return count;
+      });
+      promise.then(function (numFilms) {
+        return model.remove(function(err) {
+          if (!err) {
+            console.log("Films removed!(%d)", res.statusCode);
+            return res.json( {numAffected: numFilms} );
+          }
+          return _manageError(res, err, 'Internal error', 'Server error');
+        })
+      });
+    }
+    //Film by id
+    else {
+      console.log("DELETE - /films/:id");
+      return model.findById(req.params.id, function(err, film) {
+        if (!film) return _manageError(res, err, 404, 'Film not found', 'Not found');
+        return film.remove(function(err, film) {
+          if(!err) {
+            console.log("Film removed!(%d)", res.statusCode);
+            return res.json(film);
+          }
+          return _manageError(res, err, 'Internal error', 'Server error');
+        })
+      });
+    }
   }
 }
 

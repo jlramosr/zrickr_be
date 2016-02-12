@@ -1,4 +1,6 @@
-var mongoose = require('../helpers/db');
+var mongoose = require('../config/db');
+
+var slugify = require('slugify');
 
 var nameModel = 'Film';
 
@@ -46,7 +48,7 @@ filmSchema.methods.findSimilarFilms = function (films) {
 
 
 //Statics
-filmSchema.statics.createFilm = function (json) {
+filmSchema.statics.generateFilm = function (json) {
   return new this ({
     title:    json.title,
     images:   json.images,
@@ -61,11 +63,15 @@ filmSchema.statics.findByTitle = function (title, films) {
   return this.find({ title: new RegExp(title, 'i') }, films);
 }
 
+filmSchema.statics.findBySlug = function (slug, films) {
+  return this.find({ slug: new RegExp(slug, 'i') }, films);
+}
+
 
 
 //Virtuals
-filmSchema.virtual('titleUnique').get(function () {
-  return this.title.toLowerCase().replace(/ /g,'') + this.year.toString();
+filmSchema.virtual('slug').get(function () {
+  return slugify(this.title.toLowerCase() + ' ' + this.year.toString());
 });
 
 

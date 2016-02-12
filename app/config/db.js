@@ -8,8 +8,10 @@ var env         = process.env.NODE_ENV || 'development';
 var err         = false;
 
 var mongoose = {
-  db: require('mongoose'),
-  timestamps: require('mongoose-timestamp')
+  db:          require('mongoose'),
+  timestamps:  require('mongoose-timestamp'),
+  slugify:     require('slugify'),
+  bcrypt:      require('bcrypt')
 }
 
 var _startDB = function (namedb) {

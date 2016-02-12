@@ -45,8 +45,8 @@ var controller = {
       return model.findById(id, function(err, film) {
         if (!film) return _manageError(res, err, 404, 'Film not found', 'Not found');
         if (!err) {
+          console.log(film.slug);
           console.log("Film founded!(%d)", res.statusCode);
-          console.log(film.hola);
           return res.json(film);
         }
         return _manageError(res, err, 500, 'Internal Error', 'Server Error');
@@ -57,7 +57,7 @@ var controller = {
   insertFilm: function (req, res) {
     console.log('POST - /films');
     try {
-      var film = model.createFilm(req.body);
+      var film = model.generateFilm(req.body);
     }
     catch (err) { return _manageError(res, err, 422, 'Syntax Error', 'Syntax Error'); }
 

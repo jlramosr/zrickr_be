@@ -7,7 +7,8 @@ var bodyParser        = require('body-parser');
 var jsonParser        = bodyParser.json();
 
 
-var routes = function(app) {
+var routes = function(app, passport) {
+  app.use(bodyParser.json());
 
   // Index routes
   var index_controller = require(path.join(__dirname, path_controllers, 'index'));
@@ -17,9 +18,14 @@ var routes = function(app) {
 
   // Users routes
   var users_controller = require(path.join(__dirname, path_controllers, 'users'));
+  users_controller.configure(passport);
   users_router = express.Router();
   app.use('/users', users_router);
-  users_router.get('/', users_controller.get);
+  users_router.get('/', users_controller.findUsers); //get users
+  users_router.post('/', users_controller.createUser); //signup
+  users_router.get('/login', users_controller.login); //login
+  users_router.get('/profile', users_controller.profile); //get user
+  users_router.get('/logout', users_controller.logout); //logout
 
   // Films routes
   var films_controller = require(path.join(__dirname, path_controllers, 'films')),

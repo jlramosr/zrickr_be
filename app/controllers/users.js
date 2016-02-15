@@ -1,96 +1,100 @@
-var express = require('express');
-
 var model = require('../models/users');
 
-var LocalStrategy  = require('passport-local').Strategy;
-var GoogleStrategy = require('passport-google-oauth').OAuth2Strategy;
+var authConfig = require('../config/auth');
+var errorConfig = require('../config/error');
 
-var configAuth  = require('../config/auth');
+var express = require('express');
 
+var jwt = require('jwt-simple');
+
+var _getToken = function (headers) {
+  if (headers && headers.authorization) {
+    var parted = headers.authorization.split(' ');
+    if (parted.length === 2) return parted[1];
+  }
+  return null;
+};
 
 
 var controller = {
-  configure: function (passport) {
-
-    passport.serializeUser(function(user, done) {
-      done(null, user.id);
-    });
-
-    passport.deserializeUser(function(id, done) {
-      model.findById(id, function(err, user) {
-        done(err, user);
+  findUsers: function (req, res, next) {
+    var id = req.params.id;
+    //All Users
+    if (id === undefined) {
+      console.log("GET - /users");
+      return model.find(function(err, users) {
+        if (!err) {
+          console.log("Users founded!(%d)", res.statusCode);
+          return res.json(users);
+        }
+        return errorConfig.manageError(res, err, 500, 'Internal Error', 'Server Error');
       });
-    });
-
-    passport.use('local-signup', new LocalStrategy({
-      // by default, local strategy uses username and password, we will override with email
-      usernameField : 'email',
-      passwordField : 'password',
-      passReqToCallback : true // allows us to pass back the entire request to the callback
-    },
-    function(req, email, password, done) {
-      // asynchronous
-      // User.findOne wont fire unless data is sent back
-      process.nextTick(function() {
-        // find a user whose email is the same as the forms email
-        // we are checking to see if the user trying to login already exists
-        User.findOne({ 'local.email' :  email }, function(err, user) {
-          // if there are any errors, return the error
-          if (err) {
-            return done(err);
-          }
-          // check to see if theres already a user with that email
-          if (user) {
-            return done(null, false, console.log('signupMessage', 'That email is already taken.'));
-          }
-          else {
-            // if there is no user with that email
-            // create the user
-            var user = model.generateLocalUser({email: email, password: password});
-            // save the user
-            user.save(function(err) {
-              if (err) throw err;
-              return done(null, user);
-            });
-          }
-        });
+    }
+    //User by id
+    /*else if (id !== "profile") {
+      console.log("GET - /users/:id");
+      return model.findById(id, function(err, user) {
+        if (!user) return errorConfig.manageError(res, err, 404, 'User not Found', 'Not Found');
+        if (!err) {
+          console.log("User founded!(%d)", res.statusCode);
+          return res.json(user.toSecureJSON());
+        }
+        return errorConfig.manageError(res, err, 500, 'Internal Error', 'Server Error');
       });
-    }));
-  },
-
-
-
-
-  findUsers: function (req, res) {
-    res.send('users');
+    }
+    else {
+      next();
+    }*/
   },
 
   createUser: function(req, res) {
-    passport.authenticate('local-signup', {
-        successRedirect : '/profile', // redirect to the secure profile section
-        failureRedirect : '/signup', // redirect back to the signup page if there is an error
-        failureFlash : true // allow flash messages
+    console.log("POST - /users");
+    var email = req.body.email;
+    var password = req.body.password;
+    if (!email || !password)
+      return errorConfig.manageError(res, err, 401, 'Validation Error', 'Email or Password not Provided', 'Email or Password not Provided');
+    var user = model.generateLocalUser( {email: email, password: password} );
+    user.save(function(err) {
+      if (err) return errorConfig.manageError(res, err, 401, 'Username Exists', 'Username already Exists');
+      console.log("User created!(%d)", res.statusCode);
+      res.json(user.toSecureJSON());
     });
-    console.log(req);
   },
 
-  login: function (req, res) {
-    res.send('users/login');
+  login: function(req, res) {
+    console.log("POST - /users/login");
+    var email = req.body.email;
+    var password = req.body.password;
+    if (!email) return errorConfig.manageError(res, err, 401, 'Authentication Error', 'Email not Provided');
+    model.findOne( {'local.email': email}, function(err, user) {
+      if (err) return errorConfig.manageError(res, err, 500, 'Internal Error', 'Server Error');
+      if (!user) return errorConfig.manageError(res, err, 401, 'Authentication Error', 'User not Found');
+      user.comparePassword(req.body.password, function (err, isMatch) {
+        if (isMatch && !err) {
+          var infoUser = {_id: user._id, email: user.local.email};
+          var token = jwt.encode(user, authConfig.secret);
+          console.log("User founded!(%d)", res.statusCode);
+          infoUser.token = 'JWT ' + token;
+          return res.json(infoUser);
+        }
+        return errorConfig.manageError(res, err, 401, 'Authentication Error', 'Wrong Password', 'Wrong Password');
+      });
+    });
   },
 
   profile: function(req, res) {
-    if (req.isAuthenticated()) {
-      res.send(req.user);
+    console.log("GET /users/profile");
+    var token = _getToken(req.headers);
+    if (token) {
+      var decoded = jwt.decode(token, authConfig.secret);
+      model.findOne({'local.email': decoded.local.email}, function(err, user) {
+        if (err) return errorConfig.manageError(res, err, 500, 'Internal Error', 'Server Error');
+        if (!user) return errorConfig.manageError(res, err, 403, 'Authentication Error', 'User not Found');
+        res.json(user.toSecureJSON());
+      });
     }
-    else {
-      res.redirect('/');
-    }
+    else return errorConfig.manageError(res, err, 403, 'Authentication Error', 'No Token Provided');
   },
-
-  logout: function(req, res) {
-      req.logout();
-      res.redirect('/');
-  }
 };
 
 

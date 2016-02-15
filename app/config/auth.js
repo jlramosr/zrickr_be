@@ -1,5 +1,7 @@
 var auth = {
 
+    secret: 'lala',
+
     /*'facebookAuth' : {
         'clientID'      : 'your-secret-clientID-here', // your App ID
         'clientSecret'  : 'your-client-secret-here', // your App Secret
@@ -12,9 +14,9 @@ var auth = {
         'callbackURL'       : 'http://localhost:8080/auth/twitter/callback'
     },*/
 
-    'googleAuth' : {
-        'clientID'      : '801539997947-bn1op43r5abu0usfoedc8tbdgp615heh.apps.googleusercontent.com',
-        'clientSecret'  : '28CJp2xxpafIVPNo22j9taBq',
+    googleAuth : {
+        'clientID'      : '',
+        'clientSecret'  : '',
         'callbackURL'   : 'http://localhost:8080/auth/google/callback'
     }
 

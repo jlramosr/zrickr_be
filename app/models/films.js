@@ -1,16 +1,14 @@
-var mongoose = require('../config/db');
-
-var slugify = require('slugify');
+var mongooseConfig = require('../config/db');
 
 var nameModel = 'Film';
 
 //Schemas
-var imagesSchema = new mongoose.db.Schema ({
+var imagesSchema = new mongooseConfig.db.Schema ({
   kind: { type: String, enum: ['thumbnail', 'detail'], required: true },
   url: { type: String, required: true }
 });
 
-var filmSchema = new mongoose.db.Schema ({
+var filmSchema = new mongooseConfig.db.Schema ({
   title: { type: String, required: true },
   images: [imagesSchema],
   genre: { type: String, enum: ['Thriller', 'Adventures', 'Drama'] },
@@ -19,7 +17,7 @@ var filmSchema = new mongoose.db.Schema ({
   summary:  { type: String },
 });
 //Add createAt and updateAt fields to the Schema
-filmSchema.plugin(mongoose.timestamps);
+filmSchema.plugin(mongooseConfig.timestamps);
 
 
 //Validations
@@ -69,12 +67,16 @@ filmSchema.statics.findBySlug = function (slug, films) {
 
 
 
+//Indexes
+filmSchema.index({ title: 1, year: 1 }, { unique: true });
+
+
 //Virtuals
 filmSchema.virtual('slug').get(function () {
-  return slugify(this.title.toLowerCase() + ' ' + this.year.toString());
+  return mongooseConfig.slugify(this.title.toLowerCase() + ' ' + this.year.toString());
 });
 
 
-var model = mongoose.db.model(nameModel, filmSchema);
+var model = mongooseConfig.db.model(nameModel, filmSchema);
 
 module.exports = model;

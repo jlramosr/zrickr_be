@@ -8,33 +8,56 @@ var jsonParser        = bodyParser.json();
 
 
 var routes = function(app, passport) {
+
   app.use(bodyParser.json());
 
   // Index routes
   var index_controller = require(path.join(__dirname, path_controllers, 'index'));
-  index_router = express.Router();
+  index_router = express.Router()
+    .get( '/',
+          index_controller.get);
   app.use('/', index_router);
-  index_router.get('/', index_controller.get);
+
 
   // Users routes
   var users_controller = require(path.join(__dirname, path_controllers, 'users'));
-  users_controller.configure(passport);
-  users_router = express.Router();
+  users_router = express.Router()
+    .get( '/',
+          passport.authenticate('jwt', {session: false}),
+          users_controller.findUsers) //get users
+    .get( '/profile',
+          passport.authenticate('jwt', {session: false}),
+          users_controller.profile) //get user
+    .post('/signup',
+          jsonParser,
+          users_controller.createUser) //signup
+    .post('/login',
+          jsonParser,
+          users_controller.login); //login
+    /*.get('/logout', users_controller.logout); //logout*/
   app.use('/users', users_router);
-  users_router.get('/', users_controller.findUsers); //get users
-  users_router.post('/', users_controller.createUser); //signup
-  users_router.get('/login', users_controller.login); //login
-  users_router.get('/profile', users_controller.profile); //get user
-  users_router.get('/logout', users_controller.logout); //logout
+
 
   // Films routes
   var films_controller = require(path.join(__dirname, path_controllers, 'films')),
-  films_router = express.Router();
+  films_router = express.Router()
+    .get( '/:id?',
+          passport.authenticate('jwt', {session: false}),
+          films_controller.findFilms)
+    .post('/',
+          passport.authenticate('jwt', {session: false}),
+          jsonParser,
+          films_controller.insertFilm)
+    .put( '/:id?',
+          passport.authenticate('jwt', {session: false}),
+          jsonParser,
+          films_controller.updateFilm)
+    .delete('/:id?',
+          passport.authenticate('jwt', {session: false}),
+          jsonParser,
+          films_controller.deleteFilms);
+
   app.use('/films', films_router);
-  films_router.get('/:id?', films_controller.findFilms);
-  films_router.post('/', jsonParser, films_controller.insertFilm);
-  films_router.put('/:id?', jsonParser, films_controller.updateFilm);
-  films_router.delete('/:id?', jsonParser, films_controller.deleteFilms);
 
   // Middlewares
   app.use(function(req, res, next) {

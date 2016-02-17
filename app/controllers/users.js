@@ -17,23 +17,21 @@ var _getToken = function (headers) {
 
 
 var controller = {
-  findUsers: function (req, res, next) {
+  findUser: function (req, res, next) {
     var id = req.params.id;
     //All Users
     if (id === undefined) {
-      console.log("GET - /users");
-      return model.find(function(err, users) {
+      return model.model.find(function(err, users) {
         if (!err) {
-          console.log("Users founded!(%d)", res.statusCode);
+          console.log("Users founded successfully");
           return res.json(users);
         }
         return errorConfig.manageError(res, err, 500, 'Internal Error', 'Server Error');
       });
     }
     //User by id
-    /*else if (id !== "profile") {
-      console.log("GET - /users/:id");
-      return model.findById(id, function(err, user) {
+    else if (id !== "profile" && id !== "logout") {
+      return model.model.findById(id, function(err, user) {
         if (!user) return errorConfig.manageError(res, err, 404, 'User not Found', 'Not Found');
         if (!err) {
           console.log("User founded!(%d)", res.statusCode);
@@ -42,38 +40,39 @@ var controller = {
         return errorConfig.manageError(res, err, 500, 'Internal Error', 'Server Error');
       });
     }
+    // /users/profile
     else {
       next();
-    }*/
+    }
   },
 
   createUser: function(req, res) {
-    console.log("POST - /users");
-    var email = req.body.email;
-    var password = req.body.password;
+    var email = req.body.local.email;
+    var password = req.body.local.password;
     if (!email || !password)
-      return errorConfig.manageError(res, err, 401, 'Validation Error', 'Email or Password not Provided', 'Email or Password not Provided');
-    var user = model.generateLocalUser( {email: email, password: password} );
+      return errorConfig.manageError(res, undefined, 401, 'Validation Error', 'Email or Password not Provided', 'Email or Password not Provided');
+    var user = model.model.generateLocalUser( {email: email, password: password} );
     user.save(function(err) {
       if (err) return errorConfig.manageError(res, err, 401, 'Username Exists', 'Username already Exists');
-      console.log("User created!(%d)", res.statusCode);
-      res.json(user.toSecureJSON());
+      console.log("User create successfully");
+      return res.json(user.toSecureJSON());
     });
   },
 
   login: function(req, res) {
-    console.log("POST - /users/login");
-    var email = req.body.email;
-    var password = req.body.password;
-    if (!email) return errorConfig.manageError(res, err, 401, 'Authentication Error', 'Email not Provided');
-    model.findOne( {'local.email': email}, function(err, user) {
+    var token = _getToken(req.headers);
+    if (token) return errorConfig.manageError(res, undefined, 401, 'Login Error', 'User already Logged');
+    var email = req.body.local.email;
+    var password = req.body.local.password;
+    if (!email || !password) return errorConfig.manageError(res, undefined, 401, 'Authentication Error', 'Email or Password not Provided');
+    model.model.findOne( {'local.email': email}, function(err, user) {
       if (err) return errorConfig.manageError(res, err, 500, 'Internal Error', 'Server Error');
       if (!user) return errorConfig.manageError(res, err, 401, 'Authentication Error', 'User not Found');
-      user.comparePassword(req.body.password, function (err, isMatch) {
+      user.comparePassword(password, function (err, isMatch) {
         if (isMatch && !err) {
-          var infoUser = {_id: user._id, email: user.local.email};
-          var token = jwt.encode(user, authConfig.secret);
-          console.log("User founded!(%d)", res.statusCode);
+          var infoUser = {_id: user._id, local: {email: user.local.email}, role: user.role};
+          var token = jwt.encode(infoUser, authConfig.secret);
+          console.log("User login done successfully");
           infoUser.token = 'JWT ' + token;
           return res.json(infoUser);
         }
@@ -82,19 +81,102 @@ var controller = {
     });
   },
 
-  profile: function(req, res) {
-    console.log("GET /users/profile");
-    var token = _getToken(req.headers);
-    if (token) {
-      var decoded = jwt.decode(token, authConfig.secret);
-      model.findOne({'local.email': decoded.local.email}, function(err, user) {
-        if (err) return errorConfig.manageError(res, err, 500, 'Internal Error', 'Server Error');
-        if (!user) return errorConfig.manageError(res, err, 403, 'Authentication Error', 'User not Found');
-        res.json(user.toSecureJSON());
+  profile: function(req, res, next) {
+    var id = req.params.id;
+    if (id === "profile") {
+      var token = _getToken(req.headers);
+      if (token) {
+        var decoded = jwt.decode(token, authConfig.secret);
+        model.model.findOne({'local.email': decoded.local.email}, function(err, user) {
+          if (err) return errorConfig.manageError(res, err, 500, 'Internal Error', 'Server Error');
+          if (!user) return errorConfig.manageError(res, err, 403, 'Authentication Error', 'User not Found');
+          console.log("Profile user founded successfully");
+          return res.json(user.toSecureJSON());
+        });
+      }
+      else return errorConfig.manageError(res, err, 403, 'Authentication Error', 'No Token Provided');
+    }
+    else {
+      next();
+    }
+  },
+
+  logout: function(req, res, next) {
+    req.session.destroy();
+    return res.json({});
+  },
+
+  updateUser: function(req, res) {
+    var id = req.params.id;
+    //All Users
+    if (!id) {
+      var jsonCondition = {}
+        , jsonUpdate = req.body
+        , options = { multi: true };
+      return model.model.update(jsonCondition, jsonUpdate, options, function(err, numAffected) {
+        if (!err) {
+          console.log("%d users updated successfully", numAffected.nModified);
+          return res.json( { numAffected: numAffected.nModified });
+        }
+        return errorConfig.manageError(res, err, 500, 'Internal Error', 'Server Error');
       });
     }
-    else return errorConfig.manageError(res, err, 403, 'Authentication Error', 'No Token Provided');
+    //User by id
+    else {
+      return model.model.findById(id, function(err, user) {
+        if(!user) return errorConfig.manageError(res, err, 404, 'User not Found', 'Not Found');
+        if(!err) {
+          try {
+            user.updateLocalUser(req.body);
+          }
+          catch (err) { return errorConfig.manageError(res, err, 422, 'Syntax Error', 'Syntax Error'); }
+          return user.save(function(err) {
+            if(!err) {
+                console.log("User " + user.id + " updated successfully");
+                return res.json(user.toSecureJSON());
+            }
+            else {
+              if (err.name == 'ValidationError') return errorConfig.manageError(res, err, 400, 'Validation Error', 'Validation Error');
+              return errorConfig.manageError(res, err, 500, 'Internal Error', 'Server Error');
+            }
+          });
+        }
+      });
+    }
   },
+
+  deleteUser: function(req, res) {
+    var id = req.params.id;
+    //All Users
+    if (!id) {
+      var jsonCondition = {};
+      var promise = model.model.count(jsonCondition, function (err,count) {
+        return count;
+      });
+      promise.then(function (numUsers) {
+        return model.model.remove(function(err) {
+          if (!err) {
+            console.log("%d users removed successfully", numUsers);
+            return res.json( {numAffected: numUsers} );
+          }
+          return errorConfig.manageError(res, err, 'Internal Error', 'Server Error');
+        })
+      });
+    }
+    //Film by id
+    else {
+      return model.model.findById(id, function(err, user) {
+        if (!user) return errorConfig.manageError(res, err, 404, 'User not Found', 'Not Found');
+        return user.remove(function(err, film) {
+          if(!err) {
+            console.log("User " + user.id + " removed successfully");
+            return res.json(user.toSecureJSON());
+          }
+          return errorConfig.manageError(res, err, 'Internal Error', 'Server Error');
+        })
+      });
+    }
+  }
 };
 
 

@@ -22,7 +22,7 @@ var passportConfig = function (passport) {
   opts.secretOrKey = authConfig.secret;
 
   passport.use(new JwtStrategy(opts, function(jwt_payload, done) {
-    model.findOne({id: jwt_payload.id}, function(err, user) {
+    model.model.findOne({id: jwt_payload.id}, function(err, user) {
       if (err) return done(err, false);
       if (user) done(null, user);
       else done(null, false);

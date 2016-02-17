@@ -3,14 +3,15 @@ var mongooseConfig = require('../config/db');
 var nameModel = 'Film';
 
 //Schemas
-var imagesSchema = new mongooseConfig.db.Schema ({
+var imageSchema = new mongooseConfig.db.Schema ({
   kind: { type: String, enum: ['thumbnail', 'detail'], required: true },
   url: { type: String, required: true }
 });
 
 var filmSchema = new mongooseConfig.db.Schema ({
+  users: [userSchema],
   title: { type: String, required: true },
-  images: [imagesSchema],
+  images: [imageSchema],
   genre: { type: String, enum: ['Thriller', 'Adventures', 'Drama'] },
   colour: { type: Boolean },
   year: { type: Number, required: true },
@@ -46,7 +47,8 @@ filmSchema.methods.findSimilarFilms = function (films) {
 
 
 //Statics
-filmSchema.statics.generateFilm = function (json) {
+filmSchema.statics.generateFilm = function (json, jsonUser) {
+  console.log(jsonUser);
   return new this ({
     title:    json.title,
     images:   json.images,

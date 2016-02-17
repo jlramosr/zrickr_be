@@ -7,6 +7,8 @@ var pass_dbtest = '1234';
 var env         = process.env.NODE_ENV || 'development';
 var err         = false;
 
+var logger   = require("../config/logger");
+
 var mongoose = {
   db:          require('mongoose'),
   timestamps:  require('mongoose-timestamp'),
@@ -17,9 +19,9 @@ var mongoose = {
 var _startDB = function (namedb) {
   mongoose.db.connect('mongodb://localhost/' + namedb, function(err, res) {
     if(err) {
-      console.log('ERROR: connecting to Database. ' + err);
+      logger.debug('ERROR: connecting to Database. ' + err);
     } else {
-      console.log('Connected to Database ' + namedb);
+      logger.debug('Connected to Database ' + namedb);
     }
   });
 }
@@ -35,10 +37,10 @@ else {
 }
 
 if (err) {
-  console.error("There's no Environment to Connect Database");
+  logger.error("There's no Environment to Connect Database");
 }
 else {
-  console.log("I'm on " + env + " Environment");
+  logger.debug("I'm on " + env + " Environment");
 }
 
 module.exports = mongoose;

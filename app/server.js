@@ -1,5 +1,5 @@
-var express = require('express');
-
+var express  = require('express');
+var logger   = require("./config/logger");
 var passport = require('passport');
 
 var session  = require('./session');
@@ -9,11 +9,12 @@ var views    = require('./views');
 var app = express();
 
 var port = process.env.PORT || 3000;
+app.use(require('morgan')("combined", { "stream": logger.stream }));
 
 session(app, passport);
 routes(app, passport);
 views(app);
 
 app.listen(port, function() {
-  console.log("The frontend server is running on port 3000!")
+  logger.debug("The frontend server is running on port " + port)
 });

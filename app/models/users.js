@@ -5,6 +5,7 @@ var nameModel = 'User';
 //Schemas
 userSchema = new mongooseConfig.db.Schema( {
   role: { type: String, enum: ['admin', 'user'], default: 'user'},
+  verified: { type: Boolean, default: false},
   local: {
     email: { type: String, unique: true, required: true },
     password: { type: String, required: true }

@@ -1,27 +1,41 @@
 var express = require('express');
 
-var passportConfig = require('./config/passport');
-var authConfig = require('./config/auth');
+const LocalStrategy = require('passport-local');
 
-var expressSession = require('express-session');
+var authConfig  = require('./config/auth');
+
+var model = require('./models/users');
 
 var session = function(app, passport) {
-  app.use(expressSession({
-    secret: authConfig.secret,
-    cookie: { maxAge: 2628000000, secure: true },
-    proxy: true,
-    resave: true,
-    saveUninitialized: true
-  }));
-
-  if (app.get('env') === 'production') {
-    app.set('trust proxy', 1) // trust first proxy
-    sess.cookie.secure = true // serve secure cookies
-  }
 
   app.use(passport.initialize());
-  app.use(passport.session());
-  passportConfig(passport);
+
+  passport.use(new LocalStrategy(
+    function(username, password, done) {
+      model.model.findOne( {'local.email': username}, function(err, user) {
+        if (err) return done(err, false);
+        if (user) {
+          user.comparePassword(password, function (err, isMatch) {
+            if (isMatch && !err) done(null, user);
+            else done(err, false);
+            //return errorConfig.manageError(res, err, 401, 'Authentication Error', 'Wrong Password', 'Wrong Password');
+          });
+        }
+        else done(null, false)
+      });
+      /*if(username === 'devils name' && password === '666'){
+        done(null, {
+          id: 666,
+          firstname: 'devils',
+          lastname: 'name',
+          email: 'devil@he.ll',
+          verified: true
+        });
+      }
+      else {
+        done(null, false);
+      }*/
+    }));
 }
 
 module.exports = session;

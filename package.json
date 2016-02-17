@@ -1,6 +1,6 @@
 {
   "name": "zrickr_be",
-  "version": "1.1.2",
+  "version": "1.1.3",
   "description": "Zrickr Backend",
   "main": "app/server.js",
   "scripts": {
@@ -20,10 +20,9 @@
     "bcrypt": "^0.8.5",
     "body-parser": "^1.14.2",
     "express": "^4.13.4",
-    "express-session": "^1.13.0",
+    "express-jwt": "^3.3.0",
     "jade": "^1.11.0",
     "jsonwebtoken": "^5.7.0",
-    "jwt-simple": "^0.4.1",
     "mongodb": "^2.1.4",
     "mongoose": "^4.4.2",
     "mongoose-session": "0.0.4",
@@ -31,7 +30,6 @@
     "morgan": "^1.6.1",
     "passport": "^0.3.2",
     "passport-google-oauth": "^1.0.0",
-    "passport-jwt": "^2.0.0",
     "passport-local": "^1.0.0",
     "slugify": "^0.1.1",
     "winston": "^2.1.1"

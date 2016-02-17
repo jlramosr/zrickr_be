@@ -12,7 +12,7 @@ var error = {
       logger.warn(messageConsole + '(' + res.statusCode + ') ');
     }
     else {
-      logger.warn(messageConsole + '(' + res.statusCode + ') ' +  (err.message || ''));
+      logger.error(messageConsole + '(' + res.statusCode + ') ' +  (err.message || ''));
       if (err.errors && !summaryJSON) {
         resJSON.summary = err.errors;
       }

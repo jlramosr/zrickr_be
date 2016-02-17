@@ -6,7 +6,7 @@ var express   = require('express');
 
 
 var controller = {
-  findFilm: function (req, res) {
+  get: function (req, res) {
     var id = req.params.id;
     //All Films
     if (id === undefined) {
@@ -31,10 +31,8 @@ var controller = {
     }
   },
 
-  insertFilm: function (req, res) {
+  insert: function (req, res) {
     try {
-      console.log(req.session);
-      console.log(req._passport.authenticate);
       var film = model.generateFilm(req.body, req.user);
     }
     catch (err) { return errorConfig.manageError(res, err, 422, 'Syntax Error', 'Syntax Error'); }
@@ -51,7 +49,7 @@ var controller = {
     });
   },
 
-  updateFilm: function(req, res) {
+  update: function(req, res) {
     var id = req.params.id;
     //All Films
     if (!id) {
@@ -90,7 +88,7 @@ var controller = {
     }
   },
 
-  deleteFilm: function(req, res) {
+  delete: function(req, res) {
     var id = req.params.id;
     //All Films
     if (!id) {

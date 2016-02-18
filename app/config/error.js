@@ -13,8 +13,8 @@ var error = {
     }
     else {
       logger.error(messageConsole + '(' + res.statusCode + ') ' +  (err.message || ''));
-      if (err.errors && !summaryJSON) {
-        resJSON.summary = err.errors;
+      if (err.message && !summaryJSON) {
+        resJSON.summary = err.message;
       }
     }
     return res.json(resJSON);

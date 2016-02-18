@@ -1,6 +1,7 @@
 var model = require('../models/users');
 
 var errorConfig = require('../config/error');
+var logger   = require("../config/logger");
 
 var express = require('express');
 
@@ -13,7 +14,7 @@ var controller = {
     if (id === undefined) {
       return model.model.find(function(err, users) {
         if (!err) {
-          console.log("Users founded successfully");
+          logger.info("Users founded successfully");
           return res.json(users);
         }
         return errorConfig.manageError(res, err, 500, 'Internal Error', 'Server Error');
@@ -24,7 +25,7 @@ var controller = {
       return model.model.findById(id, function(err, user) {
         if (!user) return errorConfig.manageError(res, err, 404, 'User not Found', 'Not Found');
         if (!err) {
-          console.log("User founded!(%d)", res.statusCode);
+          logger.info("User founded!(%d)", res.statusCode);
           return res.json(user.toSecureJSON());
         }
         return errorConfig.manageError(res, err, 500, 'Internal Error', 'Server Error');
@@ -33,15 +34,17 @@ var controller = {
   },
 
   create: function(req, res) {
+    if (!req.body.local)
+      return errorConfig.manageError(res, undefined, 401, 'Validation Error', 'Email or Password not Provided', 'Email or Password not Provided');
     var email = req.body.local.email;
     var password = req.body.local.password;
-    if (!email || !password)
-      return errorConfig.manageError(res, undefined, 401, 'Validation Error', 'Email or Password not Provided', 'Email or Password not Provided');
     var user = model.model.generateLocalUser( {email: email, password: password} );
     user.save(function(err) {
-      if (err) return errorConfig.manageError(res, err, 401, 'Username Exists', 'Username already Exists');
-      console.log("User create successfully");
-      return res.json(user.toSecureJSON());
+      if (!err) {
+        logger.info("User create successfully");
+        return res.json(user.toSecureJSON());
+      }
+      return errorConfig.manageError(res, err, 401, 'User Creation Error', 'User Creation Error');
     });
   },
 
@@ -54,7 +57,7 @@ var controller = {
         , options = { multi: true };
       return model.model.update(jsonCondition, jsonUpdate, options, function(err, numAffected) {
         if (!err) {
-          console.log("%d users updated successfully", numAffected.nModified);
+          logger.info("%d users updated successfully", numAffected.nModified);
           return res.json( { numAffected: numAffected.nModified });
         }
         return errorConfig.manageError(res, err, 500, 'Internal Error', 'Server Error');
@@ -71,7 +74,7 @@ var controller = {
           catch (err) { return errorConfig.manageError(res, err, 422, 'Syntax Error', 'Syntax Error'); }
           return user.save(function(err) {
             if(!err) {
-                console.log("User " + user.id + " updated successfully");
+                logger.info("User " + user.id + " updated successfully");
                 return res.json(user.toSecureJSON());
             }
             else {
@@ -95,7 +98,7 @@ var controller = {
       promise.then(function (numUsers) {
         return model.model.remove(function(err) {
           if (!err) {
-            console.log("%d users removed successfully", numUsers);
+            logger.info("%d users removed successfully", numUsers);
             return res.json( {numAffected: numUsers} );
           }
           return errorConfig.manageError(res, err, 'Internal Error', 'Server Error');
@@ -108,7 +111,7 @@ var controller = {
         if (!user) return errorConfig.manageError(res, err, 404, 'User not Found', 'Not Found');
         return user.remove(function(err, film) {
           if(!err) {
-            console.log("User " + user.id + " removed successfully");
+            logger.info("User " + user.id + " removed successfully");
             return res.json(user.toSecureJSON());
           }
           return errorConfig.manageError(res, err, 'Internal Error', 'Server Error');

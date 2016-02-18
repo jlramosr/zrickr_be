@@ -4,11 +4,11 @@ var nameModel = 'User';
 
 //Schemas
 userSchema = new mongooseConfig.db.Schema( {
-  role: { type: String, enum: ['admin', 'user'], default: 'user'},
-  verified: { type: Boolean, default: false},
+  admin: { type: Boolean, default: false},
+  active: { type: Boolean, default: false},
   local: {
-    email: { type: String, unique: true, required: true },
-    password: { type: String, required: true }
+    email: { type: String, unique: true},
+    password: { type: String }
   },
   facebook: {
     id           : String,
@@ -68,6 +68,8 @@ userSchema.statics.generateLocalUser = function (json) {
   var user = new this ();
   user.local.email = json.email;
   user.local.password = json.password;
+  user.admin = false;
+  user.active = false;
   return user;
 };
 
@@ -89,7 +91,6 @@ userSchema.methods.toSecureJSON = function () {
 };
 
 userSchema.methods.updateLocalUser = function (json) {
-  if (json.role != null) this.role = json.role;
   if (json.email != null) this.local.email = json.email;
   if (json.password != null) this.local.password = json.password;
 };

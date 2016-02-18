@@ -14,14 +14,11 @@ var session = function(app, passport) {
     function(username, password, done) {
       model.model.findOne( {'local.email': username}, function(err, user) {
         if (err) return done(err, false);
-        if (user) {
-          user.comparePassword(password, function (err, isMatch) {
-            if (isMatch && !err) done(null, user);
-            else done(err, false);
-            //return errorConfig.manageError(res, err, 401, 'Authentication Error', 'Wrong Password', 'Wrong Password');
-          });
-        }
-        else done(null, false)
+        if (!user) done(null, false);
+        user.comparePassword(password, function (err, isMatch) {
+          if (isMatch && !err) done(null, user);
+          else done(err, false);
+        });
       });
       /*if(username === 'devils name' && password === '666'){
         done(null, {

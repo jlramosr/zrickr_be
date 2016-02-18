@@ -1,7 +1,6 @@
-var model = require('../models/users');
-
 var authConfig = require('../config/auth');
 var errorConfig = require('../config/error');
+var logger = require("../config/logger");
 
 const jwt = require('jsonwebtoken');
 const expressJwt = require('express-jwt');
@@ -15,7 +14,16 @@ function _updateOrCreate(user, cb) {
 
 var controller = {
 
-  authenticate: expressJwt({secret : authConfig.secret}),
+  //To protect our api we use the module express-jwt. It checks, if an
+  //incoming token (set in Authorization-Header) is valid and stores the
+  //token data in req.user (jwt.decode(Authorization) => req.user)
+  //http://jwt.io/
+  authenticate: expressJwt(
+    {secret : authConfig.secret},
+    function(req,res) {
+      console.log(req.user);
+    }
+  ),
 
   serialize: function (req, res, next) {
 
@@ -24,68 +32,36 @@ var controller = {
       // we store the updated information in req.user again
       req.user = {
         id: user.id,
+        admin: user.admin,
       };
       next();
     });
   },
 
   generateToken: function (req, res, next) {
+    //Generate token with id and admin
     req.token = jwt.sign({
       id: req.user.id,
+      admin: req.user.admin,
     }, authConfig.secret, {
-      expiresIn: 120
+      expiresIn: authConfig.sessionExpires
     });
     next();
   },
 
   login: function(req, res) {
+    if (!req.token) return errorConfig.manageError(res, undefined, 401, 'Authentication Error', 'Authentication Error', 'Not Token Present');
+    logger.info("User logged succesfully");
     res.status(200).json({
-      user: req.user,
       token: req.token
     });
-    /*
-    var token = _getToken(req.headers);
-    if (token) return errorConfig.manageError(res, undefined, 401, 'Login Error', 'User already Logged');
-    var email = req.body.local.email;
-    var password = req.body.local.password;
-    if (!email || !password) return errorConfig.manageError(res, undefined, 401, 'Authentication Error', 'Email or Password not Provided');
-    model.model.findOne( {'local.email': email}, function(err, user) {
-      if (err) return errorConfig.manageError(res, err, 500, 'Internal Error', 'Server Error');
-      if (!user) return errorConfig.manageError(res, err, 401, 'Authentication Error', 'User not Found');
-      user.comparePassword(password, function (err, isMatch) {
-        if (isMatch && !err) {
-          var infoUser = {_id: user._id, local: {email: user.local.email}, role: user.role};
-          var token = jwt.encode(infoUser, authConfig.secret);
-          console.log("User login done successfully");
-          infoUser.token = 'JWT ' + token;
-          return res.json(infoUser);
-        }
-        return errorConfig.manageError(res, err, 401, 'Authentication Error', 'Wrong Password', 'Wrong Password');
-      });
-    });*/
   },
 
-  profile: function(req, res, next) {
+  profile: function(req, res) {
+    if (!req.user) return errorConfig.manageError(res, undefined, 401, 'Authentication Error', 'Authentication Error', 'Not User Present');
+    logger.info("User profile showed succesfully");
     res.status(200).json(req.user);
-    /*var id = req.params.id;
-    var token = _getToken(req.headers);
-    if (token) {
-      var decoded = jwt.decode(token, authConfig.secret);
-      model.model.findOne({'local.email': decoded.local.email}, function(err, user) {
-        if (err) return errorConfig.manageError(res, err, 500, 'Internal Error', 'Server Error');
-        if (!user) return errorConfig.manageError(res, err, 403, 'Authentication Error', 'User not Found');
-        console.log("Profile user founded successfully");
-        return res.json(user.toSecureJSON());
-      });
-    }
-    return errorConfig.manageError(res, err, 403, 'Authentication Error', 'No Token Provided');*/
-  },
-
-  logout: function(req, res, next) {
-    console.log(req.user);
-    delete req.user;
-    return res.status(200).json({});
-  },
+  }
 
 };
 

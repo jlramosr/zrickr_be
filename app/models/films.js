@@ -9,7 +9,7 @@ var imageSchema = new mongooseConfig.db.Schema ({
 });
 
 var filmSchema = new mongooseConfig.db.Schema ({
-  users: [userSchema],
+  user: { type: String },
   title: { type: String, required: true },
   images: [imageSchema],
   genre: { type: String, enum: ['Thriller', 'Adventures', 'Drama'] },
@@ -38,7 +38,7 @@ filmSchema.methods.updateFilm = function (json) {
   if (json.genre != null) this.genre = json.genre;
   if (json.colour != null) this.colour = json.colour;
   if (json.year != null) this.year  = json.year;
-  if (json.summary != null) this.summary = req.body.summary;
+  if (json.summary != null) this.summary = json.summary;
 }
 
 filmSchema.methods.findSimilarFilms = function (films) {
@@ -47,9 +47,9 @@ filmSchema.methods.findSimilarFilms = function (films) {
 
 
 //Statics
-filmSchema.statics.generateFilm = function (json, jsonUser) {
-  console.log(jsonUser);
+filmSchema.statics.generateFilm = function (json, user) {
   return new this ({
+    user:     user.id,
     title:    json.title,
     images:   json.images,
     genre:    json.genre,
@@ -57,6 +57,10 @@ filmSchema.statics.generateFilm = function (json, jsonUser) {
     year:     json.year,
     summary:  json.summary
   });
+}
+
+filmSchema.statics.findByUser = function (idUser, films) {
+  return this.find({ user: idUser }, films);
 }
 
 filmSchema.statics.findByTitle = function (title, films) {
@@ -70,7 +74,7 @@ filmSchema.statics.findBySlug = function (slug, films) {
 
 
 //Indexes
-filmSchema.index({ title: 1, year: 1 }, { unique: true });
+filmSchema.index({ title: 1, year: 1, user: 1}, { unique: true });
 
 
 //Virtuals

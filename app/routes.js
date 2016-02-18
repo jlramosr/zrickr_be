@@ -24,13 +24,37 @@ var routes = function(app, passport) {
     else next();
   });
 
-  // Auth Middleware - This will check if the token is valid
-  // Only the requests that start with /api/v1/* will be checked for the token.
-  // Any URL's that do not follow the below pattern should be avoided unless you
-  // are sure that authentication is not needed
-  //app.all('/api/*', [require('./middlewares/validateRequest')]);
 
-
+  // Auth routes
+  var users_controller = require(path.join(__dirname, path_controllers, 'users'));
+  var auth_controller = require(path.join(__dirname, path_controllers, 'auth'));
+  app.all('/api/*', [auth_controller.authenticate]); //All API routes will need authorization
+  auth_router = express.Router()
+    .post('/signup',
+          jsonParser,
+          users_controller.create) //signup
+    .post('/login',
+          jsonParser,
+          function (req, res, next) {
+            passport.authenticate('local', function(err, user, info) {
+              if (err) return errorConfig.manageError(res, err, 403, 'Authorization Error', 'Authorization Error')
+              if (!user) return errorConfig.manageError(res, err, 403, 'Authorization Error', 'Authorization Error');
+              else {
+                req.user = user;
+                next();
+              }
+            })(req, res, next);
+          },
+          auth_controller.serialize,
+          auth_controller.generateToken,
+          auth_controller.login) //login
+    .get( '/profile',
+          auth_controller.authenticate,
+          auth_controller.profile) //profile
+    .get( '/signout',
+          auth_controller.authenticate,
+          users_controller.delete) //signout
+  app.use('/', auth_router);
 
 
 
@@ -42,8 +66,8 @@ var routes = function(app, passport) {
   app.use('/', index_router);
 
 
+
   // Users routes
-  var users_controller = require(path.join(__dirname, path_controllers, 'users'));
   users_router = express.Router()
     .get( '/:id?',
           users_controller.get) //get users
@@ -76,36 +100,6 @@ var routes = function(app, passport) {
           jsonParser,
           films_controller.delete);
   app.use(nameMainRoute + '/films', films_router);
-
-
-
-  // Auth routes
-  var auth_controller = require(path.join(__dirname, path_controllers, 'auth'));
-  auth_router = express.Router()
-    .post('/signup',
-          jsonParser,
-          users_controller.create) //signup
-    .post('/login',
-          jsonParser,
-          function (req, res, next) {
-            passport.authenticate('local', function(err, user, info) {
-              if (err) return next(err);
-              if (!user) return errorConfig.manageError(res, err, 403, 'Authorization Error', 'Authorization Error');
-              else {
-                req.user = user;
-                next();
-              }
-            })(req, res, next);
-          },
-          auth_controller.serialize,
-          auth_controller.generateToken,
-          auth_controller.login) //login
-    .get( '/profile',
-          auth_controller.authenticate,
-          auth_controller.profile) //profile
-    .get( '/logout',
-          auth_controller.logout); //logout
-  app.use('/', auth_router);
 
 
 

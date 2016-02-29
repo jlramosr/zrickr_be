@@ -63,6 +63,10 @@ filmSchema.statics.findByUser = function (idUser, films) {
   return this.find({ user: idUser }, films);
 }
 
+filmSchema.statics.findByUserAndId = function (idUser, id, films) {
+  return this.findOne({ _id: id, user: idUser }, films);
+}
+
 filmSchema.statics.findByTitle = function (title, films) {
   return this.find({ title: new RegExp(title, 'i') }, films);
 }

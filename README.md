@@ -48,12 +48,34 @@ Execute on console: `mongod --config "C:\Program Files\MongoDB\Server\3.2\bin\mo
 
 ### Node modules
 
-npm install -g nodemon node-inspector
+`npm install -g nodemon node-inspector`
 
 ## Proyect Installation
 
-git clone https://github.com/jlramosr/zrickr_be.git zrickr_be
+`git clone https://github.com/jlramosr/zrickr_be.git zrickr_be`
 
-cd zrickr_be && npm install
+`cd zrickr_be && npm install`
 
-npm ... (see tasks list on package.json)
+`npm start` (see all tasks on package.json)
+
+### Public Routes
+
+**POST signup { "local": {"email": "1", "password": "1234"} }**: User signup
+
+**POST login {"username": "1", "password": "1234"}**: User login
+
+### Protected or User Routes (Introducing Login Process Token returned in Header.Authorization = "Bearer TOKEN")
+
+**GET api/films**: Return all user films
+
+**GET api/films/<ID>**: Return user film identified by id parameter
+
+**POST api/films {"title": "Titanic", "year": 1999}**: Insert an user film
+
+**PUT api/films {"genre": "Drama"}**: Update all user films
+
+**PUT api/films/<ID> {"genre": "Drama"}**: Update user film identified by id parameter
+
+**DELETE api/films**: Delete all user films
+
+**DELETE api/films/<ID>**: Delete user film identified by id parameter

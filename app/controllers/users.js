@@ -38,6 +38,7 @@ var controller = {
       return errorConfig.manageError(res, undefined, 401, 'Validation Error', 'Email or Password not Provided', 'Email or Password not Provided');
     var email = req.body.local.email;
     var password = req.body.local.password;
+    if (!email || !password) return errorConfig.manageError(res, undefined, 401, 'Validation Error', 'Email or Password not Provided', 'Email or Password not Provided');
     var user = model.model.generateLocalUser( {email: email, password: password} );
     user.save(function(err) {
       if (!err) {
@@ -99,6 +100,7 @@ var controller = {
         return model.model.remove(function(err) {
           if (!err) {
             logger.info("%d users removed successfully", numUsers);
+            delete req.user;
             return res.json( {numAffected: numUsers} );
           }
           return errorConfig.manageError(res, err, 'Internal Error', 'Server Error');

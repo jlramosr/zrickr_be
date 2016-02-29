@@ -13,11 +13,14 @@ var session = function(app, passport) {
   passport.use(new LocalStrategy(
     function(username, password, done) {
       model.model.findOne( {'local.email': username}, function(err, user) {
-        if (err) return done(err, false);
-        if (!user) done(null, false);
+        if (err) return done(err);
+        if (!user) done(null, false, { message: 'Incorrect Username' });
         user.comparePassword(password, function (err, isMatch) {
-          if (isMatch && !err) done(null, user);
-          else done(err, false);
+          if (isMatch) {
+            return done(null, user);
+          } else {
+            return done(null, false, { message: 'Incorrect Password' });
+          }
         });
       });
       /*if(username === 'devils name' && password === '666'){

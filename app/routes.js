@@ -37,8 +37,8 @@ var routes = function(app, passport) {
           jsonParser,
           function (req, res, next) {
             passport.authenticate('local', function(err, user, info) {
-              if (err) return errorConfig.manageError(res, err, 403, 'Authorization Error', 'Authorization Error')
-              if (!user) return errorConfig.manageError(res, err, 403, 'Authorization Error', 'Authorization Error');
+              if (err) return errorConfig.manageError(res, err, 403, 'Authorization Error', 'Authorization Error', info.message)
+              if (!user) return errorConfig.manageError(res, err, 403, 'Authorization Error', 'Authorization Error', info.message);
               else {
                 req.user = user;
                 next();

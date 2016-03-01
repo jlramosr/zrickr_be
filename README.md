@@ -50,6 +50,16 @@ Execute on console: `mongod --config "C:\Program Files\MongoDB\Server\3.2\bin\mo
 
 `npm install -g nodemon node-inspector`
 
+### Python
+
+Download and install Python 2.7 (https://www.python.org/downloads/)
+
+Add the python main directory to the "Path" Windows environment variable
+
+### Visual Studio
+
+Download and install Visual Studio with option "Programming Language = visual c++" checked (https://www.visualstudio.com/es-es/downloads/download-visual-studio-vs.aspx)
+
 ## Proyect Installation
 
 `git clone https://github.com/jlramosr/zrickr_be.git zrickr_be`
@@ -58,24 +68,38 @@ Execute on console: `mongod --config "C:\Program Files\MongoDB\Server\3.2\bin\mo
 
 `npm start` (see all tasks on package.json)
 
+## Usage
+
 ### Public Routes
 
-**POST signup { "local": {"email": "1", "password": "1234"} }**: User signup
+`**POST signup { "local": {"email": "1", "password": "1234"} }**`: User signup
 
-**POST login {"username": "1", "password": "1234"}**: User login
+`**POST login {"username": "1", "password": "1234"}**`: User login
 
-### Protected or User Routes (Introducing Login Process Token returned in Header.Authorization = "Bearer TOKEN")
+### Protected or User Routes
 
-**GET api/films**: Return all user films
+Is necessary to introduce Login Process Token returned in Header.Authorization = "Bearer TOKEN"
 
-**GET api/films/<ID>**: Return user film identified by id parameter
+`**GET profile**`: Return user information
 
-**POST api/films {"title": "Titanic", "year": 1999}**: Insert an user film
+`**GET signout**`: User signout
 
-**PUT api/films {"genre": "Drama"}**: Update all user films
+`**GET api/users**`: Return all users
 
-**PUT api/films/<ID> {"genre": "Drama"}**: Update user film identified by id parameter
+`**GET api/users/ID**`: Return user identified by ID parameter
 
-**DELETE api/films**: Delete all user films
+`**GET api/films**`: Return all user films
 
-**DELETE api/films/<ID>**: Delete user film identified by id parameter
+`**GET api/films/ID**`: Return user film identified by ID parameter
+
+`**POST api/films {"title": "Titanic", "year": 1999}**`: Insert an user film
+
+`**PUT profile/update { "local": {"password": "12345"} }**`: Update user information
+
+`**PUT api/films {"genre": "Drama"}**`: Update all user films
+
+`**PUT api/films/ID {"genre": "Drama"}**`: Update user film identified by ID parameter
+
+`**DELETE api/films**`: Delete all user films
+
+`**DELETE api/films/ID**`: Delete user film identified by ID parameter

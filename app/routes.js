@@ -50,11 +50,23 @@ var routes = function(app, passport) {
           auth_controller.login) //login
     .get( '/profile',
           auth_controller.authenticate,
-          auth_controller.profile) //profile
+          auth_controller.profile,
+          users_controller.get) //get profile
     .get( '/signout',
           auth_controller.authenticate,
+          auth_controller.profile,
           users_controller.delete) //signout
+    .put( '/profile/update',
+          auth_controller.authenticate,
+          auth_controller.profile,
+          users_controller.update) //update profile
   app.use('/', auth_router);
+
+  // Users routes
+  users_router = express.Router()
+    .get( '/:id?',
+          users_controller.get) //get users
+  app.use(nameMainRoute + '/users', users_router);
 
 
 
@@ -64,23 +76,6 @@ var routes = function(app, passport) {
     .get( '/',
           index_controller.get);
   app.use('/', index_router);
-
-
-
-  // Users routes
-  users_router = express.Router()
-    .get( '/:id?',
-          users_controller.get) //get users
-    .post('/',
-          jsonParser,
-          users_controller.create) //signup
-    .put( '/:id?',
-          jsonParser,
-          users_controller.update) //updateUser
-    .delete('/:id?',
-            jsonParser,
-            users_controller.delete); //signout
-  app.use(nameMainRoute + '/users', users_router);
 
 
 

@@ -35,6 +35,7 @@ userSchema = new mongooseConfig.db.Schema( {
 userSchema.pre('save', function (next) {
   var user = this;
   if (this.isModified('local.password') || this.isNew) {
+    console.log("QTAL");
     mongooseConfig.bcrypt.genSalt(10, function (err, salt) {
       if (err) return next(err);
       mongooseConfig.bcrypt.hash(user.local.password, salt, function (err, hash) {
@@ -49,19 +50,6 @@ userSchema.pre('save', function (next) {
   }
 });
 
-/*userSchema.pre('update', function (next) {
-  var user = this;
-  mongooseConfig.bcrypt.genSalt(10, function (err, salt) {
-    if (err) return next(err);
-    mongooseConfig.bcrypt.hash(user.local.password, salt, function (err, hash) {
-      if (err) return next(err);
-      user.local.password = hash;
-      next();
-    });
-  });
-});*/
-
-
 
 //Statics
 userSchema.statics.generateLocalUser = function (json) {
@@ -72,6 +60,14 @@ userSchema.statics.generateLocalUser = function (json) {
   user.active = false;
   return user;
 };
+
+userSchema.statics.findSecureLocalUser = function (users) {
+  return users = this.find({}, users);
+}
+
+userSchema.statics.findSecureLocalUserById = function (id, user) {
+  return this.findOne({ _id: id }, user).select('-local.password');
+}
 
 
 //Instance Methods
@@ -84,15 +80,17 @@ userSchema.methods.comparePassword = function (passw, cb) {
   });
 };
 
-userSchema.methods.toSecureJSON = function () {
+userSchema.methods.toSecure = function () {
   var secureUser = this;
   secureUser.local.password = undefined;
   return secureUser;
 };
 
 userSchema.methods.updateLocalUser = function (json) {
-  if (json.email != null) this.local.email = json.email;
-  if (json.password != null) this.local.password = json.password;
+  if (json.local.email != null) this.local.email = json.local.email;
+  if (json.local.password != null) this.local.password = json.local.password;
+  if (json.admin != null) this.admin = this.admin && json.admin;
+  if (json.active != null) this.active = this.active && json.active;
 };
 
 

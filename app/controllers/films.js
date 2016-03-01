@@ -15,7 +15,7 @@ var controller = {
       return model.findByUser(idUser, function(err, films) {
     		if (err) return errorConfig.manageError(res, err, 500, 'Internal Error', 'Server Error');
         logger.info("%d films founded", films.length);
-    		return res.json(films);
+    		return res.status(200).json(films);
     	});
     }
     //User Film by id
@@ -24,7 +24,7 @@ var controller = {
         if (!film) return errorConfig.manageError(res, err, 404, 'Film not Found', 'Not Found');
         if (err) return errorConfig.manageError(res, err, 500, 'Internal Error', 'Server Error');
         logger.info("Film " + film.slug + " founded");
-        return res.json(film);
+        return res.status(200).json(film);
       });
     }
   },
@@ -37,7 +37,7 @@ var controller = {
         return errorConfig.manageError(res, err, 500, 'Internal Error', 'Server Error');
       }
       logger.info("Film " + film.slug + " created successfully");
-      return res.json(film);
+      return res.status(200).json(film);
     });
   },
 
@@ -52,7 +52,7 @@ var controller = {
       return model.update(jsonCondition, jsonUpdate, options, function(err, numAffected) {
         if (err) return errorConfig.manageError(res, err, 500, 'Internal Error', 'Server Error');
         logger.info("%d films updated successfully", numAffected.nModified);
-        return res.json( { numAffected: numAffected.nModified });
+        return res.status(200).json( { numAffected: numAffected.nModified });
       });
     }
     //Film by id
@@ -67,7 +67,7 @@ var controller = {
             return errorConfig.manageError(res, err, 500, 'Internal Error', 'Server Error');
           }
           logger.info("Film " + film.slug + " updated successfully");
-          return res.json(film);
+          return res.status(200).json(film);
         });
       });
     }
@@ -86,7 +86,7 @@ var controller = {
         return model.remove(function(err) {
           if (err) return errorConfig.manageError(res, err, 'Internal Error', 'Server Error');
           logger.info("%d films removed successfully", numFilms);
-          return res.json( {numAffected: numFilms} );
+          return res.status(200).json( {numAffected: numFilms} );
         })
       });
     }
@@ -97,7 +97,7 @@ var controller = {
         return film.remove(function(err, film) {
           if (err) return errorConfig.manageError(res, err, 'Internal Error', 'Server Error');
           logger.info("Film " + film.slug + " removed successfully");
-          return res.json(film);
+          return res.status(200).json(film);
         })
       });
     }

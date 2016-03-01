@@ -57,10 +57,10 @@ var controller = {
     });
   },
 
-  profile: function(req, res) {
+  profile: function(req, res, next) {
     if (!req.user) return errorConfig.manageError(res, undefined, 401, 'Authentication Error', 'Authentication Error', 'Not User Present');
-    logger.info("User profile showed succesfully");
-    res.status(200).json(req.user);
+    req.params.id = req.user.id;
+    next();
   }
 
 };

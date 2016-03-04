@@ -78,12 +78,40 @@ var routes = function(app, passport) {
   app.use('/', index_router);
 
 
+  // Collections routes
+  var collections_controller = require(path.join(__dirname, path_controllers, 'zrickers')).collectionController,
+  collections_router = express.Router()
+    .get( '/:id?',
+          collections_controller.getCollections,
+          collections_controller.get)
+    .post('/',
+          jsonParser,
+          collections_controller.insert)
+    .delete('/:id?',
+          jsonParser,
+          collections_controller.delete);
+  app.use(nameMainRoute + '/collections', collections_router);
+
+
+  // Zrickers routes
+  var zrickers_controller = require(path.join(__dirname, path_controllers, 'zrickers')).zrickrController,
+  zrickers_router = express.Router()
+    .get( '/:nameCollection?',
+          collections_controller.getCollections,
+          zrickers_controller.get)
+    .post('/',
+          jsonParser,
+          zrickers_controller.insert)
+    .delete('/:id?',
+          jsonParser,
+          zrickers_controller.delete);
+  app.use(nameMainRoute + '/zrickers', zrickers_router);
+
 
   // Films routes
   var films_controller = require(path.join(__dirname, path_controllers, 'films')),
   films_router = express.Router()
     .get( '/:id?',
-          jsonParser,
           films_controller.get)
     .post('/',
           jsonParser,

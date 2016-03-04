@@ -72,34 +72,65 @@ Download and install Visual Studio with option "Programming Language = visual c+
 
 ### Public Routes
 
-`**POST signup { "local": {"email": "1", "password": "1234"} }**`: User signup
+**`POST signup { "local": {"email": "1", "password": "1234"} }`**: User signup
 
-`**POST login {"username": "1", "password": "1234"}**`: User login
+**`POST login {"username": "1", "password": "1234"}`**: User login
 
 ### Protected or User Routes
 
 Is necessary to introduce Login Process Token returned in Header.Authorization = "Bearer TOKEN"
 
-`**GET profile**`: Return user information
+**`GET profile`**: Return user information
 
-`**GET signout**`: User signout
+**`GET signout`**: User signout
 
-`**GET api/users**`: Return all users
+**`GET api/users`**: Return all users
 
-`**GET api/users/ID**`: Return user identified by ID parameter
+**`GET api/users/ID`**: Return user identified by ID parameter
 
-`**GET api/films**`: Return all user films
+**`GET api/collections`**: Return all user collections
 
-`**GET api/films/ID**`: Return user film identified by ID parameter
+**`GET api/collections/ID`**: Return user collection identified by ID parameter
 
-`**POST api/films {"title": "Titanic", "year": 1999}**`: Insert an user film
+**`GET api/films`**: Return all user films
 
-`**PUT profile/update { "local": {"password": "12345"} }**`: Update user information
+**`GET api/films/ID`**: Return user film identified by ID parameter
 
-`**PUT api/films {"genre": "Drama"}**`: Update all user films
+**`POST api/films {"title": "Titanic", "year": 1999}`**: Insert an user film
 
-`**PUT api/films/ID {"genre": "Drama"}**`: Update user film identified by ID parameter
+**`POST api/collections
+{
+    "name": "cars",
+    "fields": [
+        {
+            "name": "brand",
+            "type": "String",
+            "required": true,
+            "unique": true
+        },
+        {
+            "name": "color",
+            "type": "String",
+            "required": true
+        },
+        {
+            "name": "price",
+            "type": "Integer"
+        }
+    ]
+}
+`**: Insert an user customized collection
 
-`**DELETE api/films**`: Delete all user films
+**`POST api/zrickers { "collection": "cars", "color": "red", "brand": "Opel", "sadsad": "noinsert" }`**: Insert a zrickr element into a collection
 
-`**DELETE api/films/ID**`: Delete user film identified by ID parameter
+**`PUT profile/update { "local": {"password": "12345"} }`**: Update user information
+
+**`PUT api/films {"genre": "Drama"}`**: Update all user films
+
+**`PUT api/films/ID {"genre": "Drama"}`**: Update user film identified by ID parameter
+
+**`DELETE api/collections`**: Delete all user collections
+
+**`DELETE api/collections/ID`**: Delete user collection identified by ID parameter
+
+**`DELETE api/films/ID`**: Delete user film identified by ID parameter

@@ -41,8 +41,8 @@ filmSchema.methods.updateFilm = function (json) {
   if (json.summary != null) this.summary = json.summary;
 }
 
-filmSchema.methods.findSimilarFilms = function (films) {
-  return this.model(nameModel).find({ genre: this.genre }, films);
+filmSchema.methods.findSimilarFilms = function (cb) {
+  return this.model(nameModel).find({ genre: this.genre }, cb);
 }
 
 
@@ -59,20 +59,20 @@ filmSchema.statics.generateFilm = function (json, user) {
   });
 }
 
-filmSchema.statics.findByUser = function (idUser, films) {
-  return this.find({ user: idUser }, films);
+filmSchema.statics.findByUser = function (idUser, cb) {
+  return this.find({ user: idUser }, cb);
 }
 
-filmSchema.statics.findByUserAndId = function (idUser, id, films) {
-  return this.findOne({ _id: id, user: idUser }, films);
+filmSchema.statics.findByUserAndId = function (idUser, id, cb) {
+  return this.findOne({ _id: id, user: idUser }, cb);
 }
 
-filmSchema.statics.findByTitle = function (title, films) {
-  return this.find({ title: new RegExp(title, 'i') }, films);
+filmSchema.statics.findByTitle = function (title, cb) {
+  return this.find({ title: new RegExp(title, 'i') }, cb);
 }
 
-filmSchema.statics.findBySlug = function (slug, films) {
-  return this.find({ slug: new RegExp(slug, 'i') }, films);
+filmSchema.statics.findBySlug = function (slug, cbSS) {
+  return this.find({ slug: new RegExp(slug, 'i') }, cb);
 }
 
 

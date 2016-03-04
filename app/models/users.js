@@ -62,7 +62,7 @@ userSchema.statics.generateLocalUser = function (json) {
 };
 
 userSchema.statics.findSecureLocalUser = function (users) {
-  return users = this.find({}, users);
+  return this.find({}, users).select('-local.password');
 }
 
 userSchema.statics.findSecureLocalUserById = function (id, user) {

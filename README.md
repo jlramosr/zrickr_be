@@ -92,6 +92,12 @@ Is necessary to introduce Login Process Token returned in Header.Authorization =
 
 **`GET api/collections/ID`**: Return user collection identified by ID parameter
 
+**`GET api/zrickers`**: Return all user zrickers of all collections
+
+**`GET api/zrickers/COL`**: Return all user zrickers of a collection identified by COL slug parameter
+
+**`GET api/zrickers/COL/id`**: Return user zrickr identified by ID parameter of a collection identified by COL slug parameter
+
 **`GET api/films`**: Return all user films
 
 **`GET api/films/ID`**: Return user film identified by ID parameter
@@ -100,13 +106,14 @@ Is necessary to introduce Login Process Token returned in Header.Authorization =
 
 **`POST api/collections
 {
-    "name": "cars",
+    "name": "War Planes",
     "fields": [
         {
             "name": "brand",
             "type": "String",
             "required": true,
-            "unique": true
+            "unique": true,
+            ""
         },
         {
             "name": "color",
@@ -121,7 +128,7 @@ Is necessary to introduce Login Process Token returned in Header.Authorization =
 }
 `**: Insert an user customized collection
 
-**`POST api/zrickers { "collection": "cars", "color": "red", "brand": "Opel", "sadsad": "noinsert" }`**: Insert a zrickr element into a collection
+**`POST api/zrickers { "collection": "war-planes", "color": "red", "brand": "Opel", "sadsad": "noinsert" }`**: Insert a zrickr element into a collection
 
 **`PUT profile/update { "local": {"password": "12345"} }`**: Update user information
 
@@ -132,5 +139,11 @@ Is necessary to introduce Login Process Token returned in Header.Authorization =
 **`DELETE api/collections`**: Delete all user collections
 
 **`DELETE api/collections/ID`**: Delete user collection identified by ID parameter
+
+**`DELETE api/zrickers`**: Delete all user zrickers
+
+**`DELETE api/zrickers/COL`**: Delete all user zrickers of a collection identified by COL slug parameter
+
+**`DELETE api/zrickers/COL/ID`**: Delete zrickr identified by ID parameter of a collection identified by COL slug parameter
 
 **`DELETE api/films/ID`**: Delete user film identified by ID parameter

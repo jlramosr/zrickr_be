@@ -83,7 +83,7 @@ var controller = {
         return count;
       });
       promise.then(function (numFilms) {
-        model.remove(function(err) {
+        model.find(jsonCondition).remove(function(err) {
           if (err) return errorConfig.manageError(res, err, 'Internal Error', 'Server Error');
           logger.info("%d films removed successfully", numFilms);
           res.status(200).json( {numAffected: numFilms} );

@@ -79,7 +79,7 @@ var routes = function(app, passport) {
 
 
   // Collections routes
-  var collections_controller = require(path.join(__dirname, path_controllers, 'zrickers')).collectionController,
+  var collections_controller = require(path.join(__dirname, path_controllers, 'collections')),
   collections_router = express.Router()
     .get( '/:id?',
           collections_controller.getCollections,
@@ -94,16 +94,17 @@ var routes = function(app, passport) {
 
 
   // Zrickers routes
-  var zrickers_controller = require(path.join(__dirname, path_controllers, 'zrickers')).zrickrController,
+  var zrickers_controller = require(path.join(__dirname, path_controllers, 'zrickers')),
   zrickers_router = express.Router()
-    .get( '/:nameCollection?',
+    .get( '/:slugCollection?/:zrickrId?',
           collections_controller.getCollections,
           zrickers_controller.get)
     .post('/',
           jsonParser,
           zrickers_controller.insert)
-    .delete('/:id?',
+    .delete('/:slugCollection?/:zrickrId?',
           jsonParser,
+          collections_controller.getCollections,
           zrickers_controller.delete);
   app.use(nameMainRoute + '/zrickers', zrickers_router);
 

@@ -13,17 +13,16 @@ var controller = {
     //All Users
     if (id === undefined) {
       return model.model.findSecureLocalUser(function(err, users) {
-        if (err) return errorConfig.manageError(res, err, 500, 'Internal Error', 'Server Error');
-        logger.info("%d users founded", users.length);
+        if (err) return errorConfig.manageError(res, err, 500, err.name, err.name, err.message);
+        if (!users) return errorConfig.manageError(res, undefined, 404, 'Users not Found', 'Not Found', 'Users not Found');
         return res.status(200).json(users);
       });
     }
     //User by id
     else {
       return model.model.findSecureLocalUserById(id, function(err, user) {
-        if (!user) return errorConfig.manageError(res, err, 404, 'User not Found', 'Not Found');
-        if (err) return errorConfig.manageError(res, err, 500, 'Internal Error', 'Server Error');
-        logger.info("User " + user.id + " founded");
+        if (err) return errorConfig.manageError(res, err, 500, err.name, err.name, err.message);
+        if (!user) return errorConfig.manageError(res, undefined, 404, 'User not Found', 'Not Found', 'User not Found');
         return res.status(200).json(user);
       });
     }
@@ -31,14 +30,14 @@ var controller = {
 
   create: function(req, res) {
     if (!req.body.local)
-      return errorConfig.manageError(res, undefined, 401, 'Validation Error', 'Email or Password not Provided', 'Email or Password not Provided');
+      return errorConfig.manageError(res, undefined, 401, 'Email or Password not Provided', 'Validation Error', 'Email or Password not Provided');
     var email = req.body.local.email;
     var password = req.body.local.password;
-    if (!email || !password) return errorConfig.manageError(res, undefined, 401, 'Validation Error', 'Email or Password not Provided', 'Email or Password not Provided');
+    if (!email || !password)
+      return errorConfig.manageError(res, undefined, 401, 'Email or Password not Provided', 'Validation Error', 'Email or Password not Provided');
     var user = model.model.generateLocalUser( {email: email, password: password} );
     user.save(function(err) {
-      if (err) return errorConfig.manageError(res, err, 401, 'User Creation Error', 'User Creation Error');
-      logger.info("User create successfully");
+      if (err) return errorConfig.manageError(res, err, 500, 'User Creation Error', 'User Creation Error');
       return res.status(200).json(user.toSecure());
     });
   },
@@ -46,28 +45,33 @@ var controller = {
   update: function(req, res) {
     var id = req.params.id;
     return model.model.findById(id, function(err, user) {
-      if(!user) return errorConfig.manageError(res, err, 404, 'User not Found', 'Not Found');
-      if(!err) {
-        user.updateLocalUser(req.body);
-        return user.save(function(err) {
-          if (err) {
-            if (err.name == 'ValidationError') return errorConfig.manageError(res, err, 400, 'Validation Error', 'Validation Error');
-            return errorConfig.manageError(res, err, 500, 'Internal Error', 'Server Error');
-          }
-          logger.info("User " + user.id + " updated successfully");
-          return res.status(200).json(user.toSecure());
-        });
-      }
+      if (err) return errorConfig.manageError(res, err, 500, err.name, err.name, err.message);
+      if (!user) return errorConfig.manageError(res, undefined, 404, 'User not Found', 'Not Found');
+      user.updateLocalUser(req.body);
+      return user.save(function(err) {
+        if (err) {
+          var lastKeyMessage = _.findLastKey(err.errors,'message');
+          if (err.name == 'ValidationError' && err.errors && lastKeyMessage)
+            return errorConfig.manageError(res, err, 404, err.name, err.name, err.errors[lastKeyMessage].message);
+          if (err.name == 'ValidationError' || err.name == 'MongoError')
+            return errorConfig.manageError(res, err, 404, err.name, err.name, err.message);
+          return errorConfig.manageError(res, err, 500, err.name, err.name, err.message);
+        }
+        return res.status(200).json(user.toSecure());
+      });
     });
   },
 
   delete: function(req, res) {
     var id = req.params.id;
     return model.model.findById(id, function(err, user) {
-      if (!user) return errorConfig.manageError(res, err, 404, 'User not Found', 'Not Found');
+      if (err) return errorConfig.manageError(res, err, 500, err.name, err.name, err.message);
+      if (!user)  {
+        var errorMessage = 'User ' + id + ' Not Found';
+        return errorConfig.manageError( res, undefined, 404, errorMessage, 'Not Found', errorMessage);
+      }
       return user.remove(function(err, film) {
-        if (err) return errorConfig.manageError(res, err, 'Internal Error', 'Server Error');
-        logger.info("User " + user.id + " removed successfully");
+        if (err) return errorConfig.manageError(res, err, 500, err.name, err.name, err.message);
         res.status(200).json(user.toSecure());
       })
     });

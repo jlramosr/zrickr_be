@@ -4,6 +4,7 @@ var modelC = require('../models/collections');
 var errorConfig = require('../config/error');
 var logger = require("../config/logger");
 
+var _ = require("lodash");
 var express = require('express');
 
 
@@ -19,6 +20,7 @@ var controller = {
     if (slugCollection === undefined && zrickrId  === undefined) {
       model.zrickersModel.findByUser(user, function(err, zrickers) {
     		if (err) return errorConfig.manageError(res, err, 500, err.name, err.name, err.message);
+        if (!zrickers) return errorConfig.manageError(res, undefined, 404, 'Zrickers not Found', 'Not Found', 'Zrickers not Found');
     		res.status(200).json(zrickers);
     	});
     }
@@ -31,13 +33,17 @@ var controller = {
       if (zrickrId === undefined) {
         model.zrickersModel.findByUserAndCollection(user, slugCollection, function(err, zrickers) {
           if (err) return errorConfig.manageError(res, err, 500, err.name, err.name, err.message);
+          if (!zrickers) return errorConfig.manageError(res, undefined, 404, 'Zrickers not Found', 'Not Found', 'Zrickers not Found');
           res.status(200).json(zrickers);
         });
       }
       //User Zricker identified by id and Collection
       else {
         model.zrickersModel.findByUserAndCollectionAndId(user, slugCollection, zrickrId, function(err, zrickr) {
-          if (err) return errorConfig.manageError(res, err, 500, err.name, err.name, err.message);
+          if (err) {
+            if (err.name == 'CastError') zrickr = undefined;
+            else return errorConfig.manageError(res, err, 500, err.name, err.name, err.message);
+          }
           if (!zrickr) {
             var errorMessage = 'Zrickr ' + zrickrId + ' Not Found';
             return errorConfig.manageError( res, undefined, 404, errorMessage, 'Not Found', errorMessage);
@@ -51,7 +57,7 @@ var controller = {
   insert: function (req, res) {
     var body            = req.body;
     var user            = req.user;
-    var slugCollection  = body.collection;
+    var slugCollection  = body.collection.trim();
 
     modelC.collectionsModel.findByUserAndSlug(user, slugCollection, function(err, collection) {
       if (err) return errorConfig.manageError(res, err, 500, err.name, err.name, err.message);
@@ -65,10 +71,9 @@ var controller = {
       var zrickr = model.zrickersModel.generateZrickr(body, user, collection);
       zrickr.save(function (err) {
         if (err) {
-          if (err.name == 'ValidationError') {
-            if (err.errors.values)
-              return errorConfig.manageError(res, err, 404, err.name, err.name, err.errors.values.properties.message);
-          }
+          var lastKeyMessage = _.findLastKey(err.errors,'message');
+          if (err.name == 'ValidationError' && err.errors && lastKeyMessage)
+            return errorConfig.manageError(res, err, 404, err.name, err.name, err.errors[lastKeyMessage].message);
           if (err.name == 'ValidationError' || err.name == 'MongoError')
             return errorConfig.manageError(res, err, 404, err.name, err.name, err.message);
           return errorConfig.manageError(res, err, 500, err.name, err.name, err.message);
@@ -79,7 +84,7 @@ var controller = {
   },
 
   delete: function(req, res) {
-    var slugCollection  = req.params.slugCollection;
+    var slugCollection  = req.params.slugCollection.trim();
     var zrickrId        = req.params.zrickrId;
     var user            = req.user;
     var collections     = req.collections;

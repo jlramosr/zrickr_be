@@ -1,9 +1,10 @@
 var model = require('../models/collections');
 
 var errorConfig = require('../config/error');
-var logger   = require("../config/logger");
+var logger = require("../config/logger");
 
-var express   = require('express');
+var _ = require("lodash");
+var express = require('express');
 
 
 var controller = {
@@ -16,6 +17,7 @@ var controller = {
     if (id === undefined) {
       model.collectionsModel.findByUser(user, function(err, collections) {
     		if (err) return errorConfig.manageError(res, err, 500, err.name, err.name, err.message);
+        if (!collections) return errorConfig.manageError(res, undefined, 404, 'Collections not Found', 'Not Found', 'Collections not Found');
     		req.collections = collections;
         next();
     	});
@@ -23,7 +25,10 @@ var controller = {
     //User Collection by id
     else {
       model.collectionsModel.findByUserAndId(user, id, function(err, collection) {
-        if (err) return errorConfig.manageError(res, err, 500, err.name, err.name, err.message);
+        if (err) {
+          if (err.name == 'CastError') collection = undefined;
+          else return errorConfig.manageError(res, err, 500, err.name, err.name, err.message);
+        }
         if (!collection)  {
           var errorMessage = 'Collection ' + id + ' Not Found';
           return errorConfig.manageError( res, undefined, 404, errorMessage, 'Not Found', errorMessage);
@@ -42,6 +47,7 @@ var controller = {
     var body    = req.body;
     var user    = req.user;
     var fields  = body.fields;
+    var numFields;
 
     if (fields) numFields = fields.length;
 
@@ -53,6 +59,9 @@ var controller = {
     var collection = model.collectionsModel.generateCollection(body, user, fields);
     collection.save(function (err) {
       if (err) {
+        var lastKeyMessage = _.findLastKey(err.errors,'message');
+        if (err.name == 'ValidationError' && err.errors && lastKeyMessage)
+          return errorConfig.manageError(res, err, 404, err.name, err.name, err.errors[lastKeyMessage].message);
         if (err.name == 'ValidationError' || err.name == 'MongoError')
           return errorConfig.manageError(res, err, 404, err.name, err.name, err.message);
         return errorConfig.manageError(res, err, 500, err.name, err.name, err.message);

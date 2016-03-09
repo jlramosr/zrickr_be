@@ -1,6 +1,6 @@
 {
   "name": "zrickr_be",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "description": "Zrickr Backend",
   "main": "app/server.js",
   "scripts": {
@@ -23,6 +23,7 @@
     "express-jwt": "^3.3.0",
     "jade": "^1.11.0",
     "jsonwebtoken": "^5.7.0",
+    "lodash": "^4.6.1",
     "mongodb": "^2.1.4",
     "mongoose": "^4.4.2",
     "mongoose-session": "0.0.4",

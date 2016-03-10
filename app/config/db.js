@@ -19,7 +19,7 @@ var mongoose = {
 var _startDB = function (namedb) {
   mongoose.db.connect('mongodb://localhost/' + namedb, function(err, res) {
     if(err) {
-      logger.debug('ERROR: connecting to Database. ' + err);
+      logger.err('ERROR: connecting to Database. ' + err);
     } else {
       logger.debug('Connected to Database ' + namedb);
     }

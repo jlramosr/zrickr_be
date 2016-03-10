@@ -14,12 +14,16 @@ var getSlug = function(name) {
 };
 
 var collectionExists = function(collections, slugCollection) {
-  _.forIn(collections, function(value, key) {
-    if (value.slug == slugCollection)
-      return true;
-  });
-  return false;
+  if (_.findIndex(collections, { 'slug': slugCollection }) < 0) return false;
+  return true;
 };
+
+var checkOneMainField = function(fields) {
+  var message;
+  if (_.findIndex(fields, { 'main': true }) < 0)
+    message = "It must be at least one main field";
+  return message;
+}
 
 
 //Schemas
@@ -51,16 +55,10 @@ collectionSchema.plugin(mongooseConfig.timestamps);
 
 //Validations
 collectionSchema.path('_fields').validate(function (fields, done) {
-  //Check if there is one main field at least
-  var thereIsOneMainField = false;
-  for (var index in fields) {
-    if (fields[index].main) {
-      thereIsOneMainField = true;
-      break;
-    }
-  }
-  if (thereIsOneMainField) done(true);
-  else done(false, "It must be at least one main field");
+  //Check if there is at least one main field
+  var messageCheck = checkOneMainField(fields);
+  if (messageCheck) done(false, messageCheck);
+  done(true);
 });
 
 
@@ -68,39 +66,23 @@ collectionSchema.path('_fields').validate(function (fields, done) {
 collectionSchema.pre('save', function(next) {
   this.name = this.name.trim();
   this.slug = getSlug(this.name);
-  for (var index in this._fields)
-    if (this._fields[index].name)
-      this._fields[index].name = this._fields[index].name.trim();
+  _.forIn(this._fields, function(value, key) {
+    value.name = value.name.trim();
+  });
   next();
 });
 
 
 //Instance methods
 collectionSchema.methods.getNameFields = function(condition) {
-  var allFields = this._fields;
-  var numFields = 0;
-  if (allFields) numFields = allFields.length;
-  var fields = [];
-  for (var i=0; i < numFields; i++) {
-    var field = allFields[i];
-    if (condition === "required" && field.required) {
-      fields.push(field.name);
-      continue;
-    }
-    else if (condition === "unique" && field.unique) {
-      fields.push(field.name);
-      continue;
-    }
-    else if (condition === "main" && field.main) {
-      fields.push(field.name);
-      continue;
-    }
-    else if (!condition) {
-      fields.push(field.name);
-      continue;
-    }
-  }
-  return fields;
+  var nameFields = [];
+  var fields;
+  if (condition) fields = _.filter(this._fields, { [condition]: true });
+            else fields = this._fields;
+  _.forIn(fields, function(value, key) {
+    nameFields.push(value.name);
+  });
+  return nameFields;
 }
 
 

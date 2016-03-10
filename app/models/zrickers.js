@@ -11,7 +11,7 @@ var _ = require("lodash");
 var checkRequiredFields = function(requiredFields, values) {
   var message;
   _.forOwn(requiredFields, function(key) {
-    if (!values[key]) message = key + ' is required';
+    if (!values[key]) message = requiredFields + ' is required';
   });
   return message;
 }

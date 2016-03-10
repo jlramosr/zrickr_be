@@ -51,7 +51,6 @@ var controller = {
 
   login: function(req, res) {
     if (!req.token) return errorConfig.manageError(res, undefined, 401, 'Authentication Error', 'Authentication Error', 'Not Token Present');
-    logger.info("User logged succesfully");
     res.status(200).json({
       token: req.token
     });

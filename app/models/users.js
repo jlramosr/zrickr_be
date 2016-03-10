@@ -35,7 +35,6 @@ userSchema = new mongooseConfig.db.Schema( {
 userSchema.pre('save', function (next) {
   var user = this;
   if (this.isModified('local.password') || this.isNew) {
-    console.log("QTAL");
     mongooseConfig.bcrypt.genSalt(10, function (err, salt) {
       if (err) return next(err);
       mongooseConfig.bcrypt.hash(user.local.password, salt, function (err, hash) {

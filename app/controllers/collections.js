@@ -1,9 +1,9 @@
 var model = require('../models/collections');
+var modelZ = require('../models/zrickers');
 
-var errorConfig = require('../config/error');
+var errors = require('../config/error');
 var logger = require("../config/logger");
 
-var _ = require("lodash");
 var express = require('express');
 
 
@@ -16,23 +16,17 @@ var controller = {
     //All User Collections
     if (id === undefined) {
       model.collectionsModel.findByUser(user, function(err, collections) {
-    		if (err) return errorConfig.manageError(res, err, 500, err.name, err.name, err.message);
-        if (!collections) return errorConfig.manageError(res, undefined, 404, 'Collections not Found', 'Not Found', 'Collections not Found');
+    		if (err) return errors.json(res, err);
     		req.collections = collections;
         next();
     	});
     }
     //User Collection by id
     else {
-      model.collectionsModel.findByUserAndId(user, id, function(err, collection) {
-        if (err) {
-          if (err.name == 'CastError') collection = undefined;
-          else return errorConfig.manageError(res, err, 500, err.name, err.name, err.message);
-        }
-        if (!collection)  {
-          var errorMessage = 'Collection ' + id + ' Not Found';
-          return errorConfig.manageError( res, undefined, 404, errorMessage, 'Not Found', errorMessage);
-        }
+      model.collectionsModel.findByUserAndId(user, id, function (err, collection) {
+        if (err) return errors.json(res, err);
+        if (!collection)
+          return errors.json(res, new errors.Http404Error('Collection does not exist'));
         req.collections = [collection];
         next();
       });
@@ -40,6 +34,7 @@ var controller = {
   },
 
   get: function (req, res) {
+    if (!req.collections) return errors.json(res, new errors.Http404Error('Collections does not exist'));
     res.status(200).json(req.collections);
   },
 
@@ -51,21 +46,12 @@ var controller = {
 
     if (fields) numFields = fields.length;
 
-    if (!numFields || numFields == 0) {
-      var errorMessage = 'A collection should have at least one field';
-      return errorConfig.manageError(res, undefined, 404, errorMessage , 'Collection Creation Error', errorMessage);
-    }
+    if (!numFields || numFields == 0)
+      return errors.json(res, new errors.Http400Error('A collection should have at least one field'));
 
     var collection = model.collectionsModel.generateCollection(body, user, fields);
     collection.save(function (err) {
-      if (err) {
-        var lastKeyMessage = _.findLastKey(err.errors,'message');
-        if (err.name == 'ValidationError' && err.errors && lastKeyMessage)
-          return errorConfig.manageError(res, err, 404, err.name, err.name, err.errors[lastKeyMessage].message);
-        if (err.name == 'ValidationError' || err.name == 'MongoError')
-          return errorConfig.manageError(res, err, 404, err.name, err.name, err.message);
-        return errorConfig.manageError(res, err, 500, err.name, err.name, err.message);
-      }
+      if (err) return errors.json(res, err);
       res.status(200).json(collection);
     });
   },
@@ -76,17 +62,28 @@ var controller = {
 
     //All User Collections
     if (!id) {
-      model.collectionsModel.findByUser(user).remove(function(err, result) {
-        if (err) return errorConfig.manageError(res, err, 500, err.name, err.name, err.message);
-        res.status(200).json({numAffected: result.result.n});
+      modelZ.zrickersModel.findByUser(user).remove(function(err, result) {
+        if (err) return errors.json(res, err);
+        var numAffectedChildren = result.result.n;
+        model.collectionsModel.findByUser(user).remove(function(err, result) {
+          if (err) return errors.json(res, err);
+          res.status(200).json({numAffected: result.result.n, numAffectedZrickers: numAffectedChildren});
+        });
       })
     }
     //User Collection by id
     else {
-      model.collectionsModel.findByUserAndId(user, id).remove(function(err, result) {
-        if (err) return errorConfig.manageError(res, err, 500, err.name, err.name, err.message);
-        res.status(200).json({numAffected: result.result.n});
-      })
+      model.collectionsModel.findByUserAndId(user, id, function(err, collection) {
+        if (err) return errors.json(res, err);
+        var slugCollection = collection.slug;
+        modelZ.zrickersModel.findByUserAndCollection(user, slugCollection).remove(function(err, result) {
+          var numAffectedChildren = result.result.n;
+          collection.remove(function(err, removedCollection) {
+            if (err) return errors.json(res, err);
+            res.status(200).json({numAffected: 1, numAffectedZrickers: numAffectedChildren});
+          });
+        });
+      });
     }
   }
 

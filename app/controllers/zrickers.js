@@ -1,10 +1,9 @@
 var model = require('../models/zrickers');
 var modelC = require('../models/collections');
 
-var errorConfig = require('../config/error');
+var errors = require('../config/error');
 var logger = require("../config/logger");
 
-var _ = require("lodash");
 var express = require('express');
 
 
@@ -19,35 +18,24 @@ var controller = {
     //All User Zrickers
     if (slugCollection === undefined && zrickrId  === undefined) {
       model.zrickersModel.findByUser(user, function(err, zrickers) {
-    		if (err) return errorConfig.manageError(res, err, 500, err.name, err.name, err.message);
-        if (!zrickers) return errorConfig.manageError(res, undefined, 404, 'Zrickers not Found', 'Not Found', 'Zrickers not Found');
+    		if (err) return errors.json(res, err);
     		res.status(200).json(zrickers);
     	});
     }
     else {
-      if (!modelC.collectionExists(collections, slugCollection)) {
-        var errorMessage = 'User Collection ' + slugCollection + ' Not Found';
-        return errorConfig.manageError( res, undefined, 404, errorMessage, 'Not Found', errorMessage);
-      }
+      if (!modelC.collectionExists(collections, slugCollection))
+        return errors.json(res, new errors.Http404Error('Collection does not exist'));
       //User Zrickers by collection
       if (zrickrId === undefined) {
         model.zrickersModel.findByUserAndCollection(user, slugCollection, function(err, zrickers) {
-          if (err) return errorConfig.manageError(res, err, 500, err.name, err.name, err.message);
-          if (!zrickers) return errorConfig.manageError(res, undefined, 404, 'Zrickers not Found', 'Not Found', 'Zrickers not Found');
+          if (err) return errors.json(res, err);
           res.status(200).json(zrickers);
         });
       }
       //User Zricker identified by id and Collection
       else {
         model.zrickersModel.findByUserAndCollectionAndId(user, slugCollection, zrickrId, function(err, zrickr) {
-          if (err) {
-            if (err.name == 'CastError') zrickr = undefined;
-            else return errorConfig.manageError(res, err, 500, err.name, err.name, err.message);
-          }
-          if (!zrickr) {
-            var errorMessage = 'Zrickr ' + zrickrId + ' Not Found';
-            return errorConfig.manageError( res, undefined, 404, errorMessage, 'Not Found', errorMessage);
-          }
+          if (err) return errors.json(res, err);
           res.status(200).json(zrickr);
         });
       }
@@ -58,26 +46,15 @@ var controller = {
     var body            = req.body;
     var user            = req.user;
     var slugCollection  = body.collection.trim();
-
     modelC.collectionsModel.findByUserAndSlug(user, slugCollection, function(err, collection) {
-      if (err) return errorConfig.manageError(res, err, 500, err.name, err.name, err.message);
-      if (!collection && slugCollection) {//there is no collection with the provided name
-        var errorMessage = 'User Collection ' + slugCollection + ' Not Found';
-        return errorConfig.manageError( res, undefined, 404, errorMessage, 'Not Found', errorMessage);
-      }
-      if (!collection) { //no collection name provided
+      if (err) return errors.json(res, err);
+      if (!collection && slugCollection) //there is no collection with the provided name
+        return errors.json(res, new errors.Http404Error('Collection does not exist'));
+      if (!collection) //no collection name provided
         collection = modelC.collectionsModel.generateCollection({}, user, {});
-      }
       var zrickr = model.zrickersModel.generateZrickr(body, user, collection);
       zrickr.save(function (err) {
-        if (err) {
-          var lastKeyMessage = _.findLastKey(err.errors,'message');
-          if (err.name == 'ValidationError' && err.errors && lastKeyMessage)
-            return errorConfig.manageError(res, err, 404, err.name, err.name, err.errors[lastKeyMessage].message);
-          if (err.name == 'ValidationError' || err.name == 'MongoError')
-            return errorConfig.manageError(res, err, 404, err.name, err.name, err.message);
-          return errorConfig.manageError(res, err, 500, err.name, err.name, err.message);
-        }
+        if (err) return errors.json(res, err);
         res.status(200).json(zrickr);
       });
     });
@@ -92,27 +69,25 @@ var controller = {
     //All User Zrickers
     if (slugCollection === undefined && zrickrId === undefined) {
       model.zrickersModel.findByUser(user).remove(function(err, result) {
-        if (err) return errorConfig.manageError(res, err, 500, err.name, err.name, err.message);
+        if (err) return errors.json(res, err);
         res.status(200).json({numAffected: result.result.n});
       })
     }
     else {
-      if (!modelC.collectionExists(collections, slugCollection)) {
-        var errorMessage = 'User Collection ' + slugCollection + ' Not Found';
-        return errorConfig.manageError( res, undefined, 404, errorMessage, 'Not Found', errorMessage);
-      }
+      if (!modelC.collectionExists(collections, slugCollection))
+        return errors.json(res, new errors.Http404Error('Collection does not exist'));
       //User Zrickers by collection
       if (zrickrId === undefined) {
         model.zrickersModel.findByUserAndCollection(user, slugCollection).remove(function(err, result) {
-          if (err) return errorConfig.manageError(res, err, 500, err.name, err.name, err.message);
+          if (err) return errors.json(res, err);
           res.status(200).json({numAffected: result.result.n});
         })
       }
       //User Zricker identified by id and Collection
       else {
-        model.zrickersModel.findByUserAndCollectionAndId(user, slugCollection, zrickrId).remove(function(err, result) {
-          if (err) return errorConfig.manageError(res, err, 500, err.name, err.name, err.message);
-          res.status(200).json({numAffected: result.result.n});
+        model.zrickersModel.findByUserAndCollectionAndId(user, slugCollection, zrickrId).remove(function(err, removeZrickr) {
+          if (err) return errors.json(res, err);
+          res.status(200).json({numAffected: 1});
         })
       }
     }

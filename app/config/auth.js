@@ -1,7 +1,7 @@
 var auth = {
 
     secret: 'lala',
-    sessionExpires: 12000,
+    sessionExpires: 1200000,
 
     /*'facebookAuth' : {
         'clientID'      : 'your-secret-clientID-here', // your App ID

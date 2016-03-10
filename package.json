@@ -1,6 +1,6 @@
 {
   "name": "zrickr_be",
-  "version": "1.2.3",
+  "version": "1.2.5",
   "description": "Zrickr Backend",
   "main": "app/server.js",
   "scripts": {

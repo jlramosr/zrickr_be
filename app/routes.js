@@ -2,7 +2,7 @@ var path              = require('path');
 var express           = require('express');
 
 var path_controllers  = 'controllers';
-var errorConfig       = require('./config/error');
+var errors            = require('./config/error');
 
 var bodyParser        = require('body-parser');
 var jsonParser        = bodyParser.json();
@@ -37,8 +37,8 @@ var routes = function(app, passport) {
           jsonParser,
           function (req, res, next) {
             passport.authenticate('local', function(err, user, info) {
-              if (err) return errorConfig.manageError(res, err, 403, 'Authorization Error', 'Authorization Error', info.message)
-              if (!user) return errorConfig.manageError(res, err, 403, 'Authorization Error', 'Authorization Error', info.message);
+              if (err) return errors.json(res, new errors.Http401Error(info.message));
+              if (!user) return errors.json(res, new errors.Http401Error(info.message));
               else {
                 req.user = user;
                 next();
@@ -135,7 +135,7 @@ var routes = function(app, passport) {
   });
   app.use(function(err, req, res, next) {
     res.status(err.status || 500);
-    errorConfig.manageError(res, err, err.status, 'Internal Error', err.message);
+    return errors.json(res, err);
   });
 }
 

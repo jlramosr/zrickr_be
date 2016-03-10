@@ -1,5 +1,5 @@
 var authConfig = require('../config/auth');
-var errorConfig = require('../config/error');
+var errors = require('../config/error');
 var logger = require("../config/logger");
 
 const jwt = require('jsonwebtoken');
@@ -21,7 +21,6 @@ var controller = {
   authenticate: expressJwt(
     {secret : authConfig.secret},
     function(req,res) {
-      console.log(req.user);
     }
   ),
 
@@ -50,14 +49,14 @@ var controller = {
   },
 
   login: function(req, res) {
-    if (!req.token) return errorConfig.manageError(res, undefined, 401, 'Authentication Error', 'Authentication Error', 'Not Token Present');
+    if (!req.token) return errors.json(res, new errors.Http401Error('Authentication Error'));
     res.status(200).json({
       token: req.token
     });
   },
 
   profile: function(req, res, next) {
-    if (!req.user) return errorConfig.manageError(res, undefined, 401, 'Authentication Error', 'Authentication Error', 'Not User Present');
+    if (!req.user) return errors.json(res, new errors.Http404Error('User does not exist'));
     req.params.id = req.user.id;
     next();
   }

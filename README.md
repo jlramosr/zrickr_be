@@ -110,19 +110,20 @@ Is necessary to introduce Login Process Token returned in Header.Authorization =
     "fields": [
         {
             "name": "brand",
-            "type": "String",
+            "type": "string",
             "required": true,
             "unique": true,
-            ""
+            "main": true
         },
         {
-            "name": "color",
-            "type": "String",
-            "required": true
+            "name": "year",
+            "type": "integer",
+            "required": true,
+            "unique": false
         },
         {
             "name": "price",
-            "type": "Integer"
+            "type": "number"
         }
     ]
 }

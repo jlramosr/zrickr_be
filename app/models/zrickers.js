@@ -1,4 +1,5 @@
 var mongooseConfig = require('../config/db');
+var app = require('../config/app');
 
 var modelC = require('../models/collections');
 
@@ -21,8 +22,7 @@ var checkUniqueFields = function(uniques, values, zrickers) {
   if (uniques.length && zrickers.length) {
     var valuesUniquesThis = {};
     _.forOwn(uniques, function(key) {
-      if (values[key]) valuesUniquesThis[key] = values[key].trim();
-      //else valuesUniquesThis[key] = "";
+      if (values[key]) valuesUniquesThis[key] = app.toTrim(values[key]);
     });
     var valuesUniquesAll = [];
     _.forIn(zrickers, function(value, key) {
@@ -34,6 +34,27 @@ var checkUniqueFields = function(uniques, values, zrickers) {
     }
   }
   return message;
+}
+
+var checkFieldTypes = function(fieldsAndTypes, values) {
+  var messages = [];
+  _.forIn(fieldsAndTypes, function(value, key) {
+    var property = value.name;
+    var zrickrValue = _.get(values, property, false);
+    if (zrickrValue) {
+      var typeCollection = value.type;
+      var typeZrickr = typeof(zrickrValue);
+      if (typeCollection !== typeZrickr) {
+        if (_.includes(app.getNoNativeTypes(), typeCollection)) {
+          console.log(typeCollection);
+          //TODO: tratar los tipos que no son nativos
+        }
+        else messages.push(property + ' must be ' + typeCollection);
+      }
+    }
+  });
+  if (messages.length) return messages.join(', ');
+  return;
 }
 
 
@@ -60,20 +81,24 @@ zrickrSchema.path('values').validate(function (values, done) {
   promiseInfoCollection.then(function(collection) {
     //Check if required fields are filled
     var requiredFields = collection.getNameFields("required");
-    var messageCheck = checkRequiredFields(requiredFields, values);
-    if (messageCheck) done(false, messageCheck);
+    var messageCheckR = checkRequiredFields(requiredFields, values);
+    if (messageCheckR) done(false, messageCheckR);
+    //Check if all values of the zrickr have the correct type indicated in the collection
+    var fieldsWithType = _.map(collection._fields, _.partialRight(_.pick, ['name','type']));
+    var messageCheckT = checkFieldTypes(fieldsWithType, values);
+    if (messageCheckT) done(false, messageCheckT);
 
     var promiseUniqueFields = model.zrickersModel.findByUserAndCollection(user, collection.slug, function(err, zrickers) {
       if (err) done(err);
     });
-
     promiseUniqueFields.then(function(zrickers) {
       //Check if unique fields are unique
       var uniqueFields = collection.getNameFields("unique");
-      var messageCheck = checkUniqueFields(uniqueFields, values, zrickers);
-      if (messageCheck) done(false, messageCheck);
+      var messageCheckU = checkUniqueFields(uniqueFields, values, zrickers);
+      if (messageCheckU) done(false, messageCheckU);
 
-      done(true);
+      done();
+
     })
   })
 });
@@ -88,7 +113,7 @@ zrickrSchema.pre('save', function(next) {
 
   //Trim all values
   _.forIn(values, function(value, key) {
-    if (value) values[key] = value.trim();
+    if (value) values[key] = app.toTrim(value);
   });
 
   modelC.collectionsModel.findByUserAndSlug(user, this._collection, function(err, collection) {

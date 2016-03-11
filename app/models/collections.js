@@ -1,9 +1,8 @@
 var mongooseConfig = require('../config/db');
+var app = require('../config/app');
 
 var nameCollectionsModel = 'Collection';
 var nameFieldsModel = 'Field';
-
-var fieldsTypes = ['Boolean', 'Char', 'String', 'Text', 'Integer', 'Decimal'];
 
 var _ = require("lodash");
 
@@ -29,7 +28,7 @@ var checkOneMainField = function(fields) {
 //Schemas
 var fieldSchema = new mongooseConfig.db.Schema ({
   name: { type: String, required: true },
-  type: { type: String, enum: fieldsTypes, required: true },
+  type: { type: String, enum: app.fieldsTypes, required: true },
   required: { type: Boolean },
   unique: { type: Boolean },
   main: { type: Boolean }
@@ -64,10 +63,10 @@ collectionSchema.path('_fields').validate(function (fields, done) {
 
 //Serials
 collectionSchema.pre('save', function(next) {
-  this.name = this.name.trim();
+  this.name = app.toTrim(this.name);
   this.slug = getSlug(this.name);
   _.forIn(this._fields, function(value, key) {
-    value.name = value.name.trim();
+    value.name = app.toTrim(value.name);
   });
   next();
 });

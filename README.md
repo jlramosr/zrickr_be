@@ -148,3 +148,7 @@ Is necessary to introduce Login Process Token returned in Header.Authorization =
 **`DELETE api/zrickers/COL/ID`**: Delete zrickr identified by ID parameter of a collection identified by COL slug parameter
 
 **`DELETE api/films/ID`**: Delete user film identified by ID parameter
+
+### Fields types
+
+The available types of a collection field are **'boolean'**, **'string'**, **'number'**, **'integer'**, **'date'** and **'image'**

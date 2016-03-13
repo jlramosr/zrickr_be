@@ -53,8 +53,8 @@ userSchema.pre('save', function (next) {
 //Statics
 userSchema.statics.generateLocalUser = function (json) {
   var user = new this ();
-  user.local.email = json.email;
-  user.local.password = json.password;
+  user.local.email = json.local.email;
+  user.local.password = json.local.password;
   user.admin = false;
   user.active = false;
   return user;

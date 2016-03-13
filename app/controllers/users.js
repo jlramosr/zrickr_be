@@ -32,7 +32,7 @@ var controller = {
   create: function(req, res) {
     if (!_.has(req.body, 'local', 'local.email', 'local.password'))
       return errors.json(res, new errors.Http403Error('Email or Password not Provided'));
-    var user = model.model.generateLocalUser( {email: email, password: password} );
+    var user = model.model.generateLocalUser(req.body);
     user.save(function(err) {
       if (err) return errors.json(res, err);
       return res.status(200).json(user.toSecure());

@@ -119,7 +119,8 @@ Is necessary to introduce Login Process Token returned in Header.Authorization =
             "name": "year",
             "type": "integer",
             "required": true,
-            "unique": false
+            "unique": false,
+            "byDefault": 20000
         },
         {
             "name": "price",
@@ -152,3 +153,15 @@ Is necessary to introduce Login Process Token returned in Header.Authorization =
 ### Fields types
 
 The available types of a collection field are **'boolean'**, **'string'**, **'number'**, **'integer'**, **'date'** and **'image'**
+
+### Fields Properties
+
+Besides the name and type of a field, we are able to add the next properties:
+
+**`required`**: Is necessary to introduce the field when we create a zrickr element
+
+**`unique`**: There can be no more than one zrickr element with the same value. If there are two or more uniques fields, the unique condition is applied to all fields together
+
+**`main`**: Is the "title" of all zrickers elements. If there are two or more main fields, the title of the zrickers is a concatenation for all of them
+
+**`byDefault`**: Value by default applied to the field if the user doesn't fill anything

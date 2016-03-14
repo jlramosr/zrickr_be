@@ -22,7 +22,22 @@ var checkOneMainField = function(fields) {
   if (_.findIndex(fields, { 'main': true }) < 0)
     message = "It must be at least one main field";
   return message;
-}
+};
+
+var checkByDefaults = function(fields) {
+  var messages = [];
+  _.forIn(fields, function(value, key) {
+    if (!_.isUndefined(value.byDefault) && _.indexOf(app.fieldsTypes, value.type) >= 0) {
+      var correctTypeAndNewValue = app.isCorrectType(value.type, value.byDefault);
+      console.log(value, correctTypeAndNewValue);
+      if (!correctTypeAndNewValue.ok)
+        messages.push(value.byDefault + ' byDefault for ' + value.name + ' is not of ' + value.type + ' type');
+      else value.byDefault = correctTypeAndNewValue.newValue;
+    }
+  });
+  if (messages.length) return messages.join(', ');
+  return;
+};
 
 
 //Schemas
@@ -31,7 +46,8 @@ var fieldSchema = new mongooseConfig.db.Schema ({
   type: { type: String, enum: app.fieldsTypes, required: true },
   required: { type: Boolean },
   unique: { type: Boolean },
-  main: { type: Boolean }
+  main: { type: Boolean },
+  byDefault: {}
 });
 
 var collectionSchema = new mongooseConfig.db.Schema ({
@@ -55,8 +71,11 @@ collectionSchema.plugin(mongooseConfig.timestamps);
 //Validations
 collectionSchema.path('_fields').validate(function (fields, done) {
   //Check if there is at least one main field
-  var messageCheck = checkOneMainField(fields);
-  if (messageCheck) done(false, messageCheck);
+  var messageCheckM = checkOneMainField(fields);
+  if (messageCheckM) done(false, messageCheckM);
+  //Check if byDefault values are of the same type indicated in the fields
+  var messageCheckD = checkByDefaults(fields);
+  if (messageCheckD) done(false, messageCheckD);
   done(true);
 });
 
@@ -77,7 +96,7 @@ collectionSchema.methods.getNameFields = function(condition) {
   var nameFields = [];
   var fields;
   if (condition) fields = _.filter(this._fields, { [condition]: true });
-            else fields = this._fields;
+  else fields = this._fields;
   _.forIn(fields, function(value, key) {
     nameFields.push(value.name);
   });

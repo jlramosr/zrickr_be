@@ -11,8 +11,9 @@ var _ = require("lodash");
 //Generic Functions
 var checkRequiredFields = function(requiredFields, values) {
   var message;
+  console.log(requiredFields);
   _.forOwn(requiredFields, function(key) {
-    if (!values[key]) message = requiredFields + ' is required';
+    if (_.isUndefined(values[key])) message = requiredFields + ' is required';
   });
   return message;
 }
@@ -39,18 +40,19 @@ var checkUniqueFields = function(uniques, values, zrickers) {
 var checkFieldTypes = function(fieldsAndTypes, values) {
   var messages = [];
   _.forIn(fieldsAndTypes, function(value, key) {
+    var errorTypeMessage;
     var property = value.name;
     var zrickrValue = _.get(values, property, false);
-    if (zrickrValue) {
-      var typeCollection = value.type;
-      var typeZrickr = typeof(zrickrValue);
-      if (typeCollection !== typeZrickr) {
-        if (_.includes(app.getNoNativeTypes(), typeCollection)) {
-          console.log(typeCollection);
-          //TODO: tratar los tipos que no son nativos
-        }
-        else messages.push(property + ' must be ' + typeCollection);
+    if (!_.isUndefined(zrickrValue)) {
+      var collectionType = value.type;
+      var correctTypeAndNewValue = app.isCorrectType(collectionType, zrickrValue);
+      if (!correctTypeAndNewValue.ok) {
+        var message = property + ' must be a ' + collectionType;
+        if (app.startsWithVowel(collectionType))
+          message = property + ' must be an ' + collectionType;
+        messages.push(message);
       }
+      else values[property] = correctTypeAndNewValue.newValue;
     }
   });
   if (messages.length) return messages.join(', ');
@@ -143,7 +145,10 @@ zrickrSchema.statics.generateZrickr = function (json, user, collection) {
     values: {}
   });
   _.forIn(collection._fields, function(value, key) {
-    zrickr.values[value.name] = json[value.name];
+    if (_.isUndefined(json[value.name]) && !_.isUndefined(value.byDefault))
+      zrickr.values[value.name] = value.byDefault;
+    else
+      zrickr.values[value.name] = json[value.name];
   });
   return zrickr;
 }

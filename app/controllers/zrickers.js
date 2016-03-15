@@ -37,6 +37,8 @@ var controller = {
       else {
         model.zrickersModel.findByUserAndCollectionAndId(user, slugCollection, zrickrId, function(err, zrickr) {
           if (err) return errors.json(res, err);
+          if (!zrickr)
+            return errors.json(res, new errors.Http404Error('Zrickr does not exist'));
           res.status(200).json(zrickr);
         });
       }

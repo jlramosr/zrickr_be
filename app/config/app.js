@@ -2,11 +2,17 @@ var _ = require("lodash");
 
 var app = {
 
-  fieldsTypes: ['boolean', 'string', 'number', 'integer', 'date', 'image'],
+  fieldsTypes: ['boolean', 'string', 'number', 'integer', 'date', 'image', 'relationOne', 'relationMany'],
 
   getNoNativeTypes: function() {
     return _.remove( _.slice(this.fieldsTypes), function (type) {
       return type !== 'boolean' && type !== 'string' && type !== 'number';
+    });
+  },
+
+  getRelationalTypes: function() {
+    return _.remove( _.slice(this.fieldsTypes), function (type) {
+      return _.startsWith(type, 'relation');
     });
   },
 
@@ -33,7 +39,7 @@ var app = {
     return false
   },
 
-  isCorrectType: function (type, value) {
+  isCorrectType: function (type, value, collection) {
     if (type !== typeof(value)) {
       if (_.includes(this.getNoNativeTypes(), type)) {
         //No native types
@@ -45,6 +51,21 @@ var app = {
 
         if (type === "integer" && !_.isInteger(value)) {
           return {ok: false};
+        }
+
+        if (type === "relationOne") {
+          //TODO:check relationOne types
+          //value is the zrickr id
+          if (!_.isString(value))
+            return {ok: false};
+          /*model.zrickersModel.findByUserAndCollectionAndId(user, collection.slug, value, function(err, zrickr) {
+            if (err || !zrickr) return {ok: false, message: value + ' zrickr not found in ' + collecion.name + ' collection'};
+          });*/
+        }
+
+        if (type === "relationMany") {
+          //TODO:check relationMany types
+          return {ok: true, newValue: value};
         }
 
         if (type === "image") {

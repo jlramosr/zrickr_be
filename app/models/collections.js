@@ -28,8 +28,7 @@ var checkByDefaults = function(fields) {
   var messages = [];
   _.forIn(fields, function(value, key) {
     if (!_.isUndefined(value.byDefault) && _.indexOf(app.fieldsTypes, value.type) >= 0) {
-      var correctTypeAndNewValue = app.isCorrectType(value.type, value.byDefault);
-      console.log(value, correctTypeAndNewValue);
+      var correctTypeAndNewValue = app.isCorrectType(value.type, value.byDefault, value.collection);
       if (!correctTypeAndNewValue.ok)
         messages.push(value.byDefault + ' byDefault for ' + value.name + ' is not of ' + value.type + ' type');
       else value.byDefault = correctTypeAndNewValue.newValue;
@@ -39,15 +38,70 @@ var checkByDefaults = function(fields) {
   return;
 };
 
+var checkRelationalPromise = function(field, user) {
+  return new Promise(function(resolve, reject) {
+    var collectionSlug = field._collection;
+    if (_.isUndefined(collectionSlug)) {
+      //There is no collection attribute
+      resolve('Relational field ' + field.name + ' must have a referenced collection');
+    }
+    else {
+      //There is a collection attribute
+      if (typeof(collectionSlug) !== 'string') {
+        //The provided collection is not a string
+        resolve('Relational field ' + field.name + ' must have a valid collection');
+      }
+      else {
+      //The provided collection does not exists or is not of the current user
+        var promiseInfoCollection = model.collectionsModel.findByUserAndSlug(user, collectionSlug, function(err, collection) {
+          if (err) done(err);
+        });
+        promiseInfoCollection.then(function(collection) {
+          if (!collection)
+            resolve('Referenced Collection ' + collectionSlug + ' Not Found');
+          resolve();
+        });
+      }
+    }
+  });
+};
+
+var checkRelationals = function(fields, user, messages) {
+  var messages = [];
+  var numFields = fields.length;
+  if (fields.length) {
+    if (_.includes(app.getRelationalTypes(), fields[0].type)) {
+      var relationalPromise = checkRelationalPromise(value, user);
+      relationalPromise.then(function(message) {
+        console.log('message',message);
+        messages.push(message);
+        checkRelationals(fields.remove(fields[0], user, messages);
+      });
+    }
+    else {
+      checkRelationals(fields.remove(fields[0], user, messages);
+    }
+  }
+  else {
+    if (messages.length) return messages.join(', ');
+    return;
+  }
+}
 
 //Schemas
 var fieldSchema = new mongooseConfig.db.Schema ({
   name: { type: String, required: true },
   type: { type: String, enum: app.fieldsTypes, required: true },
+  _collection: { type: String }, //for relationOne and relationMany types
   required: { type: Boolean },
   unique: { type: Boolean },
   main: { type: Boolean },
-  byDefault: {}
+  byDefault: {},
+  conditions: {
+    betweenLow: {},
+    betweenHigh: {},
+    size: { type: Number }
+  }
 });
 
 var collectionSchema = new mongooseConfig.db.Schema ({
@@ -73,10 +127,15 @@ collectionSchema.path('_fields').validate(function (fields, done) {
   //Check if there is at least one main field
   var messageCheckM = checkOneMainField(fields);
   if (messageCheckM) done(false, messageCheckM);
+  var user = this._user;
+  //Check if there is a correct collection if the type is relational
+  var newFields = _.slice(this.fieldsTypes)
+  var messageCheckR = checkRelationals(newFields, user, []);
+  if (messageCheckR) done(false, messageCheckR);
   //Check if byDefault values are of the same type indicated in the fields
   var messageCheckD = checkByDefaults(fields);
   if (messageCheckD) done(false, messageCheckD);
-  done(true);
+  done();
 });
 
 
@@ -107,6 +166,10 @@ collectionSchema.methods.getNameFields = function(condition) {
 
 //Statics
 collectionSchema.statics.generateCollection = function (json, user, fields) {
+  _.forIn(fields, function(value, key) {
+    if (!_.isUndefined(value._collection)) value._collection = undefined;
+    if (!_.isUndefined(value.collection)) value._collection = value.collection;
+  });
   return new this ({
     name:    json.name,
     _user:   user.id,

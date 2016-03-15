@@ -11,7 +11,6 @@ var _ = require("lodash");
 //Generic Functions
 var checkRequiredFields = function(requiredFields, values) {
   var message;
-  console.log(requiredFields);
   _.forOwn(requiredFields, function(key) {
     if (_.isUndefined(values[key])) message = requiredFields + ' is required';
   });
@@ -47,10 +46,12 @@ var checkFieldTypes = function(fieldsAndTypes, values) {
       var collectionType = value.type;
       var correctTypeAndNewValue = app.isCorrectType(collectionType, zrickrValue);
       if (!correctTypeAndNewValue.ok) {
-        var message = property + ' must be a ' + collectionType;
-        if (app.startsWithVowel(collectionType))
-          message = property + ' must be an ' + collectionType;
-        messages.push(message);
+        if (!_.isUndefined(correctTypeAndNewValue.message))
+          messages.push(correctTypeAndNewValue.message);
+        else if (app.startsWithVowel(collectionType))
+          messages.push(property + ' must be an ' + collectionType);
+        else
+          messages.push(property + ' must be a ' + collectionType);
       }
       else values[property] = correctTypeAndNewValue.newValue;
     }

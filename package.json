@@ -1,6 +1,6 @@
 {
   "name": "zrickr_be",
-  "version": "1.2.8",
+  "version": "1.2.9",
   "description": "Zrickr Backend",
   "main": "app/server.js",
   "scripts": {
@@ -27,7 +27,6 @@
     "lodash": "^4.6.1",
     "mongodb": "^2.1.4",
     "mongoose": "^4.4.2",
-    "mongoose-session": "0.0.4",
     "mongoose-timestamp": "^0.5.0",
     "morgan": "^1.6.1",
     "passport": "^0.3.2",

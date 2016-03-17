@@ -1,6 +1,8 @@
 var mongooseConfig = require('../config/db');
 var app = require('../config/app');
 
+var modelU = require('../models/users');
+
 var nameCollectionsModel = 'Collection';
 var nameFieldsModel = 'Field';
 
@@ -24,12 +26,33 @@ var checkRepeatedFields = function(fields) {
   return message;
 };
 
+var checkRepeatedShared = function(users) {
+  var message;
+  if (!app.noRepeat(users))
+    message = "It must not be repeated users";
+  return message;
+};
+
 var checkOneMainField = function(fields) {
   var message;
   if (_.findIndex(fields, { 'main': true }) < 0)
     message = "It must be at least one main field";
   return message;
 };
+
+var checkSharedExist = function(shared) {
+  var usersNotExist = [];
+  _.forEach(shared, function(userId) {
+    modelU.model.count({_id: userId}, function (err, count){
+      if(count<=0)
+        usersNotExist.push(userID);
+    });
+  });
+  if (usersNotExist.length)
+    return 'Users ' + usersNotExist + " not found";
+  return;
+};
+
 
 var checkByDefaults = function(fields) {
   var messages = [];
@@ -95,9 +118,9 @@ var checkRelationals = function(fields, user, currentSlug) {
 
 //Schemas
 var fieldSchema = new mongooseConfig.db.Schema ({
-  name: { type: String, required: true },
-  type: { type: String, enum: app.fieldsTypes, required: true },
-  _collection: { type: String }, //for relationOne and relationMany types
+  name: { type: String, required: true, trim: true },
+  type: { type: String, enum: app.fieldsTypes, required: true, trim: true },
+  _collection: { type: String, ref: 'collectionsModel', trim: true }, //for relationOne and relationMany types
   required: { type: Boolean },
   unique: { type: Boolean },
   main: { type: Boolean },
@@ -110,10 +133,11 @@ var fieldSchema = new mongooseConfig.db.Schema ({
 });
 
 var collectionSchema = new mongooseConfig.db.Schema ({
-  name: { type: String, required: true },
-  slug: { type: String },
-  _user: { type: String, required: true },
-  _fields: [fieldSchema]
+  name: { type: String, required: true, trim: true },
+  slug: { type: String, trim: true },
+  _user: { type: String, required: true, ref: 'User', trim: true },
+  _fields: [fieldSchema],
+  _sharedWith: [{ type: String, ref: 'User', trim: true }]
     //{ type: mongooseConfig.db.Schema.Types.ObjectId, ref: nameFieldsModel }
 });
 
@@ -150,17 +174,22 @@ collectionSchema.path('_fields').validate(function (fields, done) {
       done(false, err);
     }
   );
+});
 
+collectionSchema.path('_sharedWith').validate(function (sharedWith, done) {
+  //Check if all ids of users exist
+  var messageCheckE = checkSharedExist(sharedWith);
+  if (messageCheckE) done(false, messageCheckE);
+  //Check if there are repeated users
+  var messageCheckRp = checkRepeatedShared(sharedWith);
+  if (messageCheckRp) done(false, messageCheckRp);
+  done();
 });
 
 
 //Serials
 collectionSchema.pre('save', function(next) {
-  this.name = app.toTrim(this.name);
   this.slug = getSlug(this.name);
-  _.forIn(this._fields, function(value, key) {
-    value.name = app.toTrim(value.name);
-  });
   next();
 });
 
@@ -197,28 +226,31 @@ collectionSchema.methods.getRelationalFields = function() {
 }
 
 //Statics
-collectionSchema.statics.generateCollection = function (json, user, fields) {
-  _.forIn(fields, function(value, key) {
-    if (!_.isUndefined(value._collection)) value._collection = undefined;
-    if (!_.isUndefined(value.collection)) value._collection = value.collection;
-  });
+collectionSchema.statics.generateCollection = function (json, user, fields, sharedWith) {
   return new this ({
     name:    json.name,
     _user:   user.id,
-    _fields: fields
+    _fields: fields,
+    _sharedWith: sharedWith
   });
 }
 
 collectionSchema.statics.findByUser = function (user, cb) {
-  return this.find({ _user: user.id }, cb).select('-__v -_user');
+  return  this.find({ _user: user.id }, cb)
+              .populate('_sharedWith', '-local.password')
+              .select('-__v -_user');
 }
 
 collectionSchema.statics.findByUserAndId = function (user, id, cb) {
-  return this.findOne({ _id: id, _user: user.id }, cb).select('-__v -_user');
+  return  this.findOne({ _id: id, _user: user.id }, cb)
+              .populate('_sharedWith', '-local.password')
+              .select('-__v -_user');
 }
 
 collectionSchema.statics.findByUserAndSlug = function (user, slugCollection, cb) {
-  return this.findOne({ slug: slugCollection, _user: user.id }, cb).select('-__v -_user');
+  return  this.findOne({ slug: slugCollection, _user: user.id }, cb)
+              .populate('_sharedWith', '-local.password')
+              .select('-__v -_user');
 }
 
 

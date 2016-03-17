@@ -97,14 +97,13 @@ var checkRelationalFields = function(collection, values, user) {
 
 
 
-
 //Schemas
 var zrickrSchema = new mongooseConfig.db.Schema ({
-  _collection: { type: String, required: true },
-  _user: { type: String, required: true },
-  slug: { type: String },
+  _collection: { type: String, required: true, ref: 'Collection', trim: true },
+  _user: { type: String, required: true, ref: 'User', trim: true },
+  slug: { type: String, trim: true },
   values : {}
-}, {strict: false});
+}, {strict: false}, { shardKey: { slug: 1 }});
 
 //Add createAt and updateAt fields to the Schemas
 zrickrSchema.plugin(mongooseConfig.timestamps);
@@ -187,10 +186,11 @@ zrickrSchema.pre('save', function(next) {
 //Statics
 zrickrSchema.statics.generateZrickr = function (json, user, collection) {
   var zrickr = new this ({
-    _collection: collection.slug, // =json.collection
+    _collection: collection._id, // =json._collection
     _user: user.id,
     values: {}
   });
+  //Fill the values defined by the user in the collection
   _.forIn(collection._fields, function(value, key) {
     if (_.isUndefined(json[value.name]) && !_.isUndefined(value.byDefault))
       zrickr.values[value.name] = value.byDefault;
@@ -201,15 +201,21 @@ zrickrSchema.statics.generateZrickr = function (json, user, collection) {
 }
 
 zrickrSchema.statics.findByUser = function (user, cb) {
-  return this.find({ _user: user.id }, cb).select('-__v');
+  return  this.find({ _user: user.id }, cb)
+              //.populate('_collection')
+              .select('-__v -_user')
 }
 
 zrickrSchema.statics.findByUserAndCollection = function (user, slugCollection, cb) {
-  return this.find({ _collection: slugCollection, _user: user.id}, cb).select('-__v -_collection -_user');
+  return  this.find({ _collection: slugCollection, _user: user.id}, cb)
+              //.populate('_collection')
+              .select('-__v -_collection -_user');
 }
 
 zrickrSchema.statics.findByUserAndCollectionAndId = function (user, slugCollection, id, cb) {
-  return this.findOne({ _id: id, _collection: slugCollection, _user: user.id }, cb).select('-__v -_collection -_user -_id');
+  return  this.findOne({ _id: id, _collection: slugCollection, _user: user.id }, cb)
+              //.populate('_collection')
+              .select('-__v -_collection -_user');
 }
 
 

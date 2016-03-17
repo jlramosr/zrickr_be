@@ -7,7 +7,7 @@ userSchema = new mongooseConfig.db.Schema( {
   admin: { type: Boolean, default: false},
   active: { type: Boolean, default: false},
   local: {
-    email: { type: String, unique: true},
+    email: { type: String, unique: true, trim: true},
     password: { type: String }
   },
   facebook: {

@@ -39,9 +39,10 @@ var controller = {
   },
 
   insert: function (req, res) {
-    var body    = req.body;
-    var user    = req.user;
-    var fields  = body.fields;
+    var body        = req.body;
+    var user        = req.user;
+    var fields      = body._fields;
+    var sharedWith  = body._sharedWith;
     var numFields;
 
     if (fields) numFields = fields.length;
@@ -49,7 +50,7 @@ var controller = {
     if (!numFields)
       return errors.json(res, new errors.Http400Error('A collection should have at least one field'));
 
-    var collection = model.collectionsModel.generateCollection(body, user, fields);
+    var collection = model.collectionsModel.generateCollection(body, user, fields, sharedWith);
     collection.save(function (err) {
       if (err) return errors.json(res, err);
       res.status(200).json(collection);

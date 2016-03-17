@@ -107,7 +107,7 @@ Is necessary to introduce Login Process Token returned in Header.Authorization =
 **`POST api/collections
 {
     "name": "War Planes",
-    "fields": [
+    "_fields": [
         {
             "name": "brand",
             "type": "string",
@@ -143,7 +143,7 @@ Is necessary to introduce Login Process Token returned in Header.Authorization =
 
 **`POST api/zrickers
 {
-  "collection": "war-planes",
+  "_collection": "war-planes",
   "color": "red",
   "brand": "Opel",
   "sadsad": "noinsert",

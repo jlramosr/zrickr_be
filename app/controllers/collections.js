@@ -46,7 +46,7 @@ var controller = {
 
     if (fields) numFields = fields.length;
 
-    if (!numFields || numFields == 0)
+    if (!numFields)
       return errors.json(res, new errors.Http400Error('A collection should have at least one field'));
 
     var collection = model.collectionsModel.generateCollection(body, user, fields);

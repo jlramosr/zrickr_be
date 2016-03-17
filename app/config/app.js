@@ -39,6 +39,12 @@ var app = {
     return false
   },
 
+  noRepeat: function(values) {
+    if (values.length !== _.uniq(values).length)
+      return false;
+    return true;
+  },
+
   isCorrectType: function (type, value, collection) {
     if (type !== typeof(value)) {
       if (_.includes(this.getNoNativeTypes(), type)) {
@@ -54,18 +60,22 @@ var app = {
         }
 
         if (type === "relationOne") {
-          //TODO:check relationOne types
           //value is the zrickr id
           if (!_.isString(value))
             return {ok: false};
-          /*model.zrickersModel.findByUserAndCollectionAndId(user, collection.slug, value, function(err, zrickr) {
-            if (err || !zrickr) return {ok: false, message: value + ' zrickr not found in ' + collecion.name + ' collection'};
-          });*/
         }
 
         if (type === "relationMany") {
-          //TODO:check relationMany types
-          return {ok: true, newValue: value};
+          if (!_.isArray(value))
+            return {ok: false};
+          else {
+            if (!this.noRepeat(value))
+              return {ok: false, message: "There are duplicated zrickers in "};
+            if (_.findIndex(value, function(zrickrId) {
+              return !_.isString(zrickrId);
+            }) >= 0)
+              return {ok: false};
+          }
         }
 
         if (type === "image") {

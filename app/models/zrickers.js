@@ -12,7 +12,8 @@ var _ = require("lodash");
 var checkRequiredFields = function(requiredFields, values) {
   var message;
   _.forOwn(requiredFields, function(key) {
-    if (_.isUndefined(values[key])) message = requiredFields + ' is required';
+    if ( _.isUndefined(values[key]) || values[key].length <= 0 )
+      message = requiredFields + ' is required';
   });
   return message;
 }
@@ -41,13 +42,13 @@ var checkFieldTypes = function(fieldsAndTypes, values) {
   _.forIn(fieldsAndTypes, function(value, key) {
     var errorTypeMessage;
     var property = value.name;
-    var zrickrValue = _.get(values, property, false);
+    var zrickrValue = _.get(values, property, undefined);
     if (!_.isUndefined(zrickrValue)) {
       var collectionType = value.type;
       var correctTypeAndNewValue = app.isCorrectType(collectionType, zrickrValue);
       if (!correctTypeAndNewValue.ok) {
         if (!_.isUndefined(correctTypeAndNewValue.message))
-          messages.push(correctTypeAndNewValue.message);
+          messages.push(correctTypeAndNewValue.message + property);
         else if (app.startsWithVowel(collectionType))
           messages.push(property + ' must be an ' + collectionType);
         else
@@ -59,6 +60,41 @@ var checkFieldTypes = function(fieldsAndTypes, values) {
   if (messages.length) return messages.join(', ');
   return;
 }
+
+var checkRelationalFields = function(collection, values, user) {
+  var relationalFields = collection.getRelationalFields();
+  var relationalPromises = [];
+  _.forIn(relationalFields, function(fieldsType, type) {
+    _.forEach(fieldsType, function(infoField) {
+      var nameField = _.keys(infoField)[0];
+      var arrayZrickersIds = values[nameField];
+      if (!_.isUndefined(arrayZrickersIds)) {
+        //for oneRelation transform value in array of one element
+        if (!_.isArray(arrayZrickersIds)) arrayZrickersIds = [arrayZrickersIds];
+        _.forEach(arrayZrickersIds, function(zrickrId) {
+          var collectionSlug = _.values(infoField)[0];
+          var promise = new Promise(function(resolve,reject) {
+            if (zrickrId.length <= 0)
+              resolve('Empty referenced zrickr of collection ' + collectionSlug + ' not found for field ' + nameField);
+            model.zrickersModel.findByUserAndCollectionAndId(user, collectionSlug, zrickrId, function(err, zrickr) {
+              if (err || !zrickr) resolve('Referenced ' + zrickrId + ' zrickr of collection ' + collectionSlug + ' not found for field ' + nameField);
+              resolve();
+            });
+          });
+          relationalPromises.push(promise);
+        });
+      }
+    })
+  });
+  return Promise.all(relationalPromises).then(
+    function(messages) {
+      var newMessages = _.pullAll(messages, [ undefined ]);
+      if (newMessages.length) return newMessages.join(', ');
+      return;
+    }
+  );
+}
+
 
 
 
@@ -80,6 +116,7 @@ zrickrSchema.path('values').validate(function (values, done) {
   var user = {id: this._user};
   var promiseInfoCollection = modelC.collectionsModel.findByUserAndSlug(user, this._collection, function(err, collection) {
     if (err) done(err);
+    return collection;
   });
   promiseInfoCollection.then(function(collection) {
     //Check if required fields are filled
@@ -93,15 +130,24 @@ zrickrSchema.path('values').validate(function (values, done) {
 
     var promiseUniqueFields = model.zrickersModel.findByUserAndCollection(user, collection.slug, function(err, zrickers) {
       if (err) done(err);
+      return zrickers;
     });
     promiseUniqueFields.then(function(zrickers) {
       //Check if unique fields are unique
       var uniqueFields = collection.getNameFields("unique");
       var messageCheckU = checkUniqueFields(uniqueFields, values, zrickers);
       if (messageCheckU) done(false, messageCheckU);
-
-      done();
-
+      //Check if relationals fields belongs to the indicated collection
+      var promiseCheckR = checkRelationalFields(collection, values, user);
+      promiseCheckR.then(
+        function (messageCheckR) {
+          if (messageCheckR) done(false, messageCheckR);
+          done();
+        },
+        function (err) {
+          done(false, err);
+        }
+      );
     })
   })
 });
@@ -148,7 +194,7 @@ zrickrSchema.statics.generateZrickr = function (json, user, collection) {
   _.forIn(collection._fields, function(value, key) {
     if (_.isUndefined(json[value.name]) && !_.isUndefined(value.byDefault))
       zrickr.values[value.name] = value.byDefault;
-    else
+    else if (!_.isUndefined(json[value.name]))
       zrickr.values[value.name] = json[value.name];
   });
   return zrickr;

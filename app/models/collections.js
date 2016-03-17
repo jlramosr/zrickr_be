@@ -17,6 +17,13 @@ var collectionExists = function(collections, slugCollection) {
   return true;
 };
 
+var checkRepeatedFields = function(fields) {
+  var message;
+  if (!app.noRepeat(fields))
+    message = "It must not be repeated fields";
+  return message;
+};
+
 var checkOneMainField = function(fields) {
   var message;
   if (_.findIndex(fields, { 'main': true }) < 0)
@@ -38,7 +45,7 @@ var checkByDefaults = function(fields) {
   return;
 };
 
-var checkRelationalPromise = function(field, user) {
+var checkRelationalPromise = function(field, user, currentSlug) {
   return new Promise(function(resolve, reject) {
     var collectionSlug = field._collection;
     if (_.isUndefined(collectionSlug)) {
@@ -54,39 +61,37 @@ var checkRelationalPromise = function(field, user) {
       else {
       //The provided collection does not exists or is not of the current user
         var promiseInfoCollection = model.collectionsModel.findByUserAndSlug(user, collectionSlug, function(err, collection) {
-          if (err) done(err);
+          if (err) resolve(err.name);
         });
         promiseInfoCollection.then(function(collection) {
-          if (!collection)
+          if (!collection && currentSlug !== collectionSlug)
             resolve('Referenced Collection ' + collectionSlug + ' Not Found');
-          resolve();
+          else
+            resolve();
         });
       }
     }
   });
 };
 
-var checkRelationals = function(fields, user, messages) {
-  var messages = [];
-  var numFields = fields.length;
-  if (fields.length) {
-    if (_.includes(app.getRelationalTypes(), fields[0].type)) {
-      var relationalPromise = checkRelationalPromise(value, user);
-      relationalPromise.then(function(message) {
-        console.log('message',message);
-        messages.push(message);
-        checkRelationals(fields.remove(fields[0], user, messages);
-      });
+var checkRelationals = function(fields, user, currentSlug) {
+  var relationalPromises = [];
+  _.forIn(fields, function(value, key) {
+    if (_.includes(app.getRelationalTypes(), value.type)) {
+      relationalPromises.push(checkRelationalPromise(value, user, currentSlug));
     }
-    else {
-      checkRelationals(fields.remove(fields[0], user, messages);
+  });
+  return Promise.all(relationalPromises).then(
+    function(messages) {
+      var newMessages = _.pullAll(messages, [ undefined ]);
+      if (newMessages.length) return newMessages.join(', ');
+      return;
+    },
+    function(err) {
+      return err;
     }
-  }
-  else {
-    if (messages.length) return messages.join(', ');
-    return;
-  }
-}
+  );
+};
 
 //Schemas
 var fieldSchema = new mongooseConfig.db.Schema ({
@@ -124,18 +129,28 @@ collectionSchema.plugin(mongooseConfig.timestamps);
 
 //Validations
 collectionSchema.path('_fields').validate(function (fields, done) {
+  //Check if there are repeated name fields
+  var messageCheckRp = checkRepeatedFields(this.getNameFields());
+  if (messageCheckRp) done(false, messageCheckRp);
   //Check if there is at least one main field
   var messageCheckM = checkOneMainField(fields);
   if (messageCheckM) done(false, messageCheckM);
-  var user = this._user;
+  var user = {id: this._user};
   //Check if there is a correct collection if the type is relational
-  var newFields = _.slice(this.fieldsTypes)
-  var messageCheckR = checkRelationals(newFields, user, []);
-  if (messageCheckR) done(false, messageCheckR);
-  //Check if byDefault values are of the same type indicated in the fields
-  var messageCheckD = checkByDefaults(fields);
-  if (messageCheckD) done(false, messageCheckD);
-  done();
+  var promiseCheckR = checkRelationals(fields, user, getSlug(this.name));
+  promiseCheckR.then(
+    function (messageCheckR) {
+      if (messageCheckR) done(false, messageCheckR);
+      //Check if byDefault values are of the same type indicated in the fields
+      var messageCheckD = checkByDefaults(fields);
+      if (messageCheckD) done(false, messageCheckD);
+      done();
+    },
+    function (err) {
+      done(false, err);
+    }
+  );
+
 });
 
 
@@ -162,7 +177,24 @@ collectionSchema.methods.getNameFields = function(condition) {
   return nameFields;
 }
 
-
+collectionSchema.methods.getRelationalFields = function() {
+  var fields = {};
+    /* {
+          relationOne:  [ { field: collection }, ...],
+          relationMany: [ { field: collection }, ...]
+       }    */
+  var relationalFields = _.filter(this._fields, function(field) {
+    return (_.startsWith(field.type, 'relation'));
+  });
+  _.forIn(relationalFields, function(value, key) {
+    var fieldAndCollection = {};
+    fieldAndCollection[value.name] = value._collection;
+    if (_.isUndefined(fields[value.type]))
+      fields[value.type] = [];
+    fields[value.type].push(fieldAndCollection);
+  });
+  return fields;
+}
 
 //Statics
 collectionSchema.statics.generateCollection = function (json, user, fields) {

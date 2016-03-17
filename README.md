@@ -125,12 +125,30 @@ Is necessary to introduce Login Process Token returned in Header.Authorization =
         {
             "name": "price",
             "type": "number"
+        },
+        {
+            "name": "owners",
+            "type": "relationMany",
+            "collection": "my-persons"
+        },
+        {
+            "name": "country",
+            "type": "relationOne",
+            "collection": "my-countries",
+            "byDefault": "56e965ebb6decb581d61bc66"
         }
     ]
 }
 `**: Insert an user customized collection
 
-**`POST api/zrickers { "collection": "war-planes", "color": "red", "brand": "Opel", "sadsad": "noinsert" }`**: Insert a zrickr element into a collection
+**`POST api/zrickers
+{
+  "collection": "war-planes",
+  "color": "red",
+  "brand": "Opel",
+  "sadsad": "noinsert",
+  "country": "56e965ebb6decb581d61bc61",
+  "owners": ["56e965ebb6decc581d61bc61", "56e965ebb6decc581d61bc62"]}`**: Insert a zrickr element into a collection
 
 **`PUT profile/update { "local": {"password": "12345"} }`**: Update user information
 
@@ -152,7 +170,7 @@ Is necessary to introduce Login Process Token returned in Header.Authorization =
 
 ### Fields types
 
-The available types of a collection field are **'boolean'**, **'string'**, **'number'**, **'integer'**, **'date'** and **'image'**
+The available simple types of a collection field are **'boolean'**, **'string'**, **'number'**, **'integer'**, **'date'** and **'image'**. There are two additional types used to relate one field with a zrickr of other collections (including the collection of the current zrickr): **'relationOne'** and **'relationMany'**
 
 ### Fields Properties
 
@@ -165,3 +183,5 @@ Besides the name and type of a field, we are able to add the next properties:
 **`main`**: Is the "title" of all zrickers elements. If there are two or more main fields, the title of the zrickers is a concatenation for all of them
 
 **`byDefault`**: Value by default applied to the field if the user doesn't fill anything
+
+**`collection`**: If the type is relational, this property indicate the slug of the related collection

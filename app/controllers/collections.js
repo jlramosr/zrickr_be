@@ -38,23 +38,55 @@ var controller = {
     res.status(200).json(req.collections);
   },
 
+  getPublicCollections: function (req, res, next) {
+    var id    = req.params.id;
+
+    //All Public Schema Collections
+    if (id === undefined) {
+      model.collectionsModel.findPublicSchemas(function(err, collections) {
+        if (err) return errors.json(res, err);
+        res.status(200).json(collections);
+      });
+    }
+    //Public Schema Collection by id
+    else {
+      model.collectionsModel.findPublicSchema(id, function (err, collection) {
+        if (err) return errors.json(res, err);
+        if (!collection)
+          return errors.json(res, new errors.Http404Error('Public collection schema does not exist'));
+        res.status(200).json(collection);
+      });
+    }
+  },
+
   insert: function (req, res) {
-    var body        = req.body;
-    var user        = req.user;
-    var fields      = body._fields;
-    var sharedWith  = body._sharedWith;
-    var numFields;
+    var body  = req.body;
+    var user  = req.user;
+    var id    = req.params.id;
 
-    if (fields) numFields = fields.length;
-
-    if (!numFields)
-      return errors.json(res, new errors.Http400Error('A collection should have at least one field'));
-
-    var collection = model.collectionsModel.generateCollection(body, user, fields, sharedWith);
-    collection.save(function (err) {
-      if (err) return errors.json(res, err);
-      res.status(200).json(collection);
-    });
+    //Customized Collection
+    if (id === undefined) {
+      var collection = model.collectionsModel.generateCollection(body, user);
+      collection.save(function (err) {
+        if (err) return errors.json(res, err);
+        res.status(200).json(collection);
+      });
+    }
+    //From another public collection schema
+    else {
+      model.collectionsModel.findPublicSchema(id, function (err, collection) {
+        if (err) return errors.json(res, err);
+        if (!collection)
+          return errors.json(res, new errors.Http404Error('Public collection schema does not exist'));
+        collection.name = body.name;
+        collection.publicSchema = false;
+        var newCollection = model.collectionsModel.generateCollection(collection, user);
+        newCollection.save(function (err) {
+          if (err) return errors.json(res, err);
+          res.status(200).json(newCollection);
+        });
+      });
+    }
   },
 
   delete: function(req, res) {

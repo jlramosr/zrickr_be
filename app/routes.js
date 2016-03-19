@@ -84,7 +84,7 @@ var routes = function(app, passport) {
     .get( '/:id?',
           collections_controller.getCollections,
           collections_controller.get)
-    .post('/',
+    .post('/:id?',
           jsonParser,
           collections_controller.insert)
     .delete('/:id?',
@@ -125,6 +125,12 @@ var routes = function(app, passport) {
           films_controller.delete);
   app.use(nameMainRoute + '/films', films_router);
 
+
+  // Public routes
+  public_router = express.Router()
+    .get( '/collections/:id?',
+          collections_controller.getPublicCollections);
+  app.use(nameMainRoute + '/public', public_router);
 
 
   //Error Middlewares

@@ -49,6 +49,7 @@ var controller = {
     var body            = req.body;
     var user            = req.user;
     var slugCollection  = app.toTrim(body.collection);
+    
     modelC.collectionsModel.findByUserAndSlug(user, slugCollection, function(err, collection) {
       if (err) return errors.json(res, err);
       if (!collection && slugCollection) //there is no collection with the provided name

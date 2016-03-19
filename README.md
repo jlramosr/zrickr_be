@@ -92,6 +92,10 @@ Is necessary to introduce Login Process Token returned in Header.Authorization =
 
 **`GET api/collections/ID`**: Return user collection identified by ID parameter
 
+**`GET api/public/collections`**: Return public collection schemas
+
+**`GET api/public/collections/ID`**: Return public collection schema indenfied by ID parameter
+
 **`GET api/zrickers`**: Return all user zrickers of all collections
 
 **`GET api/zrickers/COL`**: Return all user zrickers of a collection identified by COL slug parameter
@@ -140,6 +144,8 @@ Is necessary to introduce Login Process Token returned in Header.Authorization =
     ]
 }
 `**: Insert an user customized collection
+
+**`POST api/collections/ID`**: Insert an user collection from a definition of another public collection schema
 
 **`POST api/zrickers
 {

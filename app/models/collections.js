@@ -19,6 +19,13 @@ var collectionExists = function(collections, slugCollection) {
   return true;
 };
 
+var checkFieldsExist = function(fields) {
+  var message;
+  if (!fields.length)
+    message = 'A collection should have at least one field';
+  return message;
+};
+
 var checkRepeatedFields = function(fields) {
   var message;
   if (!app.noRepeat(fields))
@@ -40,20 +47,6 @@ var checkOneMainField = function(fields) {
   return message;
 };
 
-var checkSharedExist = function(shared) {
-  var usersNotExist = [];
-  _.forEach(shared, function(userId) {
-    modelU.model.count({_id: userId}, function (err, count){
-      if(count<=0)
-        usersNotExist.push(userID);
-    });
-  });
-  if (usersNotExist.length)
-    return 'Users ' + usersNotExist + " not found";
-  return;
-};
-
-
 var checkByDefaults = function(fields) {
   var messages = [];
   _.forIn(fields, function(value, key) {
@@ -71,26 +64,25 @@ var checkByDefaults = function(fields) {
 var checkRelationalPromise = function(field, user, currentSlug) {
   return new Promise(function(resolve, reject) {
     var collectionSlug = field._collection;
-    if (_.isUndefined(collectionSlug)) {
+    if (_.isUndefined(field._collection)) {
       //There is no collection attribute
       resolve('Relational field ' + field.name + ' must have a referenced collection');
     }
     else {
       //There is a collection attribute
-      if (typeof(collectionSlug) !== 'string') {
+      if (typeof(field._collection) !== 'string') {
         //The provided collection is not a string
         resolve('Relational field ' + field.name + ' must have a valid collection');
       }
       else {
-      //The provided collection does not exists or is not of the current user
-        var promiseInfoCollection = model.collectionsModel.findByUserAndSlug(user, collectionSlug, function(err, collection) {
-          if (err) resolve(err.name);
-        });
-        promiseInfoCollection.then(function(collection) {
-          if (!collection && currentSlug !== collectionSlug)
-            resolve('Referenced Collection ' + collectionSlug + ' Not Found');
-          else
-            resolve();
+        if (field._collection <= 0)
+          resolve('Empty referenced collection not found for field ' + field.name);
+        if (currentSlug === field._collection)
+          resolve();
+        //The provided collection does not exists or is not of the current user
+        model.collectionsModel.findByUserAndSlug(user, field._collection, function(err, collection) {
+          if (err || !collection) resolve('Referenced collection ' + field._collection + ' not found for field ' + field.name);
+          resolve();
         });
       }
     }
@@ -116,11 +108,47 @@ var checkRelationals = function(fields, user, currentSlug) {
   );
 };
 
+
+var checkSharedUserExists = function(userId) {
+  return promise = new Promise(function(resolve, reject) {
+    modelU.model.count({_id: userId}, function (err, count){
+      if(!count)
+        resolve('Shared user ' + userId + ' not found')
+      resolve();
+    });
+  });
+};
+
+var checkSharedUsersExists = function(shared) {
+  var usersNotExistsPromises = [];
+  _.forEach(shared, function(userId) {
+    usersNotExistsPromises.push(checkSharedUserExists(userId));
+  });
+  return Promise.all(usersNotExistsPromises).then(
+    function(messages) {
+      var newMessages = _.pullAll(messages, [ undefined ]);
+      if (newMessages.length) return newMessages.join(', ');
+      return;
+    },
+    function(err) {
+      return err;
+    }
+  );
+};
+
+var checkSharedCurrentUser = function(sharedWith, currentUserId) {
+  var message;
+  console.log(sharedWith, currentUserId);
+  if (_.includes(sharedWith, currentUserId))
+    message = "Current user can not be in the shared users list";
+  return message;
+}
+
+
 //Schemas
 var fieldSchema = new mongooseConfig.db.Schema ({
   name: { type: String, required: true, trim: true },
   type: { type: String, enum: app.fieldsTypes, required: true, trim: true },
-  _collection: { type: String, ref: 'collectionsModel', trim: true }, //for relationOne and relationMany types
   required: { type: Boolean },
   unique: { type: Boolean },
   main: { type: Boolean },
@@ -129,16 +157,17 @@ var fieldSchema = new mongooseConfig.db.Schema ({
     betweenLow: {},
     betweenHigh: {},
     size: { type: Number }
-  }
+  },
+  _collection: { type: String, ref: 'collectionsModel', trim: true } //for relationOne and relationMany types
 });
 
 var collectionSchema = new mongooseConfig.db.Schema ({
   name: { type: String, required: true, trim: true },
   slug: { type: String, trim: true },
+  publicSchema: { type: String, default: false},
   _user: { type: String, required: true, ref: 'User', trim: true },
   _fields: [fieldSchema],
   _sharedWith: [{ type: String, ref: 'User', trim: true }]
-    //{ type: mongooseConfig.db.Schema.Types.ObjectId, ref: nameFieldsModel }
 });
 
 //Add createAt and updateAt fields to the Schemas
@@ -153,6 +182,9 @@ collectionSchema.plugin(mongooseConfig.timestamps);
 
 //Validations
 collectionSchema.path('_fields').validate(function (fields, done) {
+  //Check if there are fields
+  var messageCheckE = checkFieldsExist(fields);
+  if (messageCheckE) done(false, messageCheckE);
   //Check if there are repeated name fields
   var messageCheckRp = checkRepeatedFields(this.getNameFields());
   if (messageCheckRp) done(false, messageCheckRp);
@@ -161,8 +193,7 @@ collectionSchema.path('_fields').validate(function (fields, done) {
   if (messageCheckM) done(false, messageCheckM);
   var user = {id: this._user};
   //Check if there is a correct collection if the type is relational
-  var promiseCheckR = checkRelationals(fields, user, getSlug(this.name));
-  promiseCheckR.then(
+  checkRelationals(fields, user, getSlug(this.name)).then(
     function (messageCheckR) {
       if (messageCheckR) done(false, messageCheckR);
       //Check if byDefault values are of the same type indicated in the fields
@@ -177,13 +208,23 @@ collectionSchema.path('_fields').validate(function (fields, done) {
 });
 
 collectionSchema.path('_sharedWith').validate(function (sharedWith, done) {
+  var userId = this._user;
   //Check if all ids of users exist
-  var messageCheckE = checkSharedExist(sharedWith);
-  if (messageCheckE) done(false, messageCheckE);
-  //Check if there are repeated users
-  var messageCheckRp = checkRepeatedShared(sharedWith);
-  if (messageCheckRp) done(false, messageCheckRp);
-  done();
+  checkSharedUsersExists(sharedWith).then(
+    function (messageCheckE) {
+      if (messageCheckE) done(false, messageCheckE);
+      //Check if the current user is not in the list
+      var messageCheckU = checkSharedCurrentUser(sharedWith, userId);
+      if (messageCheckU) done(false, messageCheckU);
+      //Check if there are repeated users
+      var messageCheckRp = checkRepeatedShared(sharedWith);
+      if (messageCheckRp) done(false, messageCheckRp);
+      done();
+    },
+    function (err) {
+      done(false, err);
+    }
+  );
 });
 
 
@@ -226,33 +267,45 @@ collectionSchema.methods.getRelationalFields = function() {
 }
 
 //Statics
-collectionSchema.statics.generateCollection = function (json, user, fields, sharedWith) {
+collectionSchema.statics.generateCollection = function (json, user) {
   return new this ({
     name:    json.name,
     _user:   user.id,
-    _fields: fields,
-    _sharedWith: sharedWith
+    _fields: json._fields || [],
+    _sharedWith: json._sharedWith || [],
+    publicSchema: json.publicSchema,
   });
 }
 
 collectionSchema.statics.findByUser = function (user, cb) {
   return  this.find({ _user: user.id }, cb)
               .populate('_sharedWith', '-local.password')
-              .select('-__v -_user');
+              .select('-__v -_user -_fields');
 }
 
 collectionSchema.statics.findByUserAndId = function (user, id, cb) {
   return  this.findOne({ _id: id, _user: user.id }, cb)
               .populate('_sharedWith', '-local.password')
-              .select('-__v -_user');
+              .select('-__v -_user -_fields');
 }
 
 collectionSchema.statics.findByUserAndSlug = function (user, slugCollection, cb) {
   return  this.findOne({ slug: slugCollection, _user: user.id }, cb)
               .populate('_sharedWith', '-local.password')
-              .select('-__v -_user');
+              .select('-__v -_user -_fields');
 }
 
+collectionSchema.statics.findPublicSchemas = function (cb) {
+  return  this.find({ publicSchema: true }, cb)
+              .populate('_user', '-local.password')
+              .select('name _user _fields');
+}
+
+collectionSchema.statics.findPublicSchema = function (id, cb) {
+  return  this.findOne({ _id: id, publicSchema: true }, cb)
+              .populate('_user', '-local.password')
+              .select('-__v -_sharedWith -publicSchema');
+}
 
 
 //Indexes

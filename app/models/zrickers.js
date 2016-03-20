@@ -72,12 +72,12 @@ var checkRelationalFields = function(collection, values, user) {
         //for oneRelation transform value in array of one element
         if (!_.isArray(arrayZrickersIds)) arrayZrickersIds = [arrayZrickersIds];
         _.forEach(arrayZrickersIds, function(zrickrId) {
-          var collectionSlug = _.values(infoField)[0];
+          var collectionId = _.values(infoField)[0];
           var promise = new Promise(function(resolve,reject) {
             if (zrickrId.length <= 0)
-              resolve('Empty referenced zrickr of collection ' + collectionSlug + ' not found for field ' + nameField);
-            model.zrickersModel.findByUserAndCollectionAndId(user, collectionSlug, zrickrId, function(err, zrickr) {
-              if (err || !zrickr) resolve('Referenced ' + zrickrId + ' zrickr of collection ' + collectionSlug + ' not found for field ' + nameField);
+              resolve('Empty referenced zrickr of collection ' + collectionId + ' not found for field ' + nameField);
+            model.zrickersModel.findByUserAndCollectionAndId(user, collectionId, zrickrId, function(err, zrickr) {
+              if (err || !zrickr) resolve('Referenced ' + zrickrId + ' zrickr of collection ' + collectionId + ' not found for field ' + nameField);
               resolve();
             });
           });
@@ -100,7 +100,6 @@ var checkRelationalFields = function(collection, values, user) {
 //Schemas
 var zrickrSchema = new mongooseConfig.db.Schema ({
   _collection: { type: String, required: true, ref: 'Collection', trim: true },
-  _user: { type: String, required: true, ref: 'User', trim: true },
   slug: { type: String, trim: true },
   values : {}
 }, {strict: false}, { shardKey: { slug: 1 }});
@@ -113,11 +112,10 @@ zrickrSchema.plugin(mongooseConfig.timestamps);
 //Validations
 zrickrSchema.path('values').validate(function (values, done) {
   var user = {id: this._user};
-  var promiseInfoCollection = modelC.collectionsModel.findByUserAndSlug(user, this._collection, function(err, collection) {
+  var collectionId = this._collection;
+  modelC.collectionsModel.findByUserAndId(user, collectionId, function(err, collection) {
     if (err) done(err);
-    return collection;
-  });
-  promiseInfoCollection.then(function(collection) {
+    if (!collection) done(false, "Collection " + collectionId + 'not exists')
     //Check if required fields are filled
     var requiredFields = collection.getNameFields("required");
     var messageCheckR = checkRequiredFields(requiredFields, values);
@@ -127,7 +125,7 @@ zrickrSchema.path('values').validate(function (values, done) {
     var messageCheckT = checkFieldTypes(fieldsWithType, values);
     if (messageCheckT) done(false, messageCheckT);
 
-    var promiseUniqueFields = model.zrickersModel.findByUserAndCollection(user, collection.slug, function(err, zrickers) {
+    var promiseUniqueFields = model.zrickersModel.findByUserAndCollection(user, collectionId, function(err, zrickers) {
       if (err) done(err);
       return zrickers;
     });
@@ -137,8 +135,7 @@ zrickrSchema.path('values').validate(function (values, done) {
       var messageCheckU = checkUniqueFields(uniqueFields, values, zrickers);
       if (messageCheckU) done(false, messageCheckU);
       //Check if relationals fields belongs to the indicated collection
-      var promiseCheckR = checkRelationalFields(collection, values, user);
-      promiseCheckR.then(
+      checkRelationalFields(collection, values, user).then(
         function (messageCheckR) {
           if (messageCheckR) done(false, messageCheckR);
           done();
@@ -155,22 +152,23 @@ zrickrSchema.path('values').validate(function (values, done) {
 
 //Serials
 zrickrSchema.pre('save', function(next) {
+  var zrickr = this;
   var user = {id: this._user};
   var values = this.values;
-  var zrickr = this;
 
   //Trim all values
   _.forIn(values, function(value, key) {
     if (value) values[key] = app.toTrim(value);
   });
 
-  modelC.collectionsModel.findByUserAndSlug(user, this._collection, function(err, collection) {
+
+  modelC.collectionsModel.findByUserAndId(user, this._collection, function(err, collection) {
     if (err) next(err);
     //Generate slug by referencing main fields of the collection
     var mainFields = collection.getNameFields("main");
     var slug = [];
     _.forOwn(mainFields, function(key) {
-      if (values[key]) slug.push(zrickr.values[key]);
+      if (zrickr.values[key]) slug.push(zrickr.values[key]);
     });
     zrickr.slug = slug.join();
     next();
@@ -184,10 +182,9 @@ zrickrSchema.pre('save', function(next) {
 
 
 //Statics
-zrickrSchema.statics.generateZrickr = function (json, user, collection) {
+zrickrSchema.statics.generateZrickr = function (json, collection) {
   var zrickr = new this ({
     _collection: collection._id, // =json._collection
-    _user: user.id,
     values: {}
   });
   //Fill the values defined by the user in the collection
@@ -201,21 +198,36 @@ zrickrSchema.statics.generateZrickr = function (json, user, collection) {
 }
 
 zrickrSchema.statics.findByUser = function (user, cb) {
-  return  this.find({ _user: user.id }, cb)
-              //.populate('_collection')
-              .select('-__v -_user')
+  return  this.find({}, cb)
+              .populate({
+                path: '_collection',
+                match: { _user: { _id: user.id } },
+                select: 'name _user',
+                options: {}
+              })
+              .select('_id slug values');
 }
 
-zrickrSchema.statics.findByUserAndCollection = function (user, slugCollection, cb) {
-  return  this.find({ _collection: slugCollection, _user: user.id}, cb)
-              //.populate('_collection')
-              .select('-__v -_collection -_user');
+zrickrSchema.statics.findByUserAndCollection = function (user, collectionId, cb) {
+  return  this.find({}, cb)
+              .populate({
+                path: '_collection',
+                match: { _id: collectionId, _user: { _id: user.id } },
+                select: 'name _user',
+                options: {}
+              })
+              .select('_id slug values');
 }
 
-zrickrSchema.statics.findByUserAndCollectionAndId = function (user, slugCollection, id, cb) {
-  return  this.findOne({ _id: id, _collection: slugCollection, _user: user.id }, cb)
-              //.populate('_collection')
-              .select('-__v -_collection -_user');
+zrickrSchema.statics.findByUserAndCollectionAndId = function (user, collectionId, id, cb) {
+  return  this.findOne({ _id: id }, cb)
+              .populate({
+                path: '_collection',
+                match: { _id: collectionId, _user: { _id: user.id } },
+                select: 'name _user',
+                options: {}
+              })
+              .select('_id slug values');
 }
 
 

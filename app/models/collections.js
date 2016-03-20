@@ -14,8 +14,8 @@ var getSlug = function(name) {
   return mongooseConfig.slugify(name.toLowerCase());
 };
 
-var collectionExists = function(collections, slugCollection) {
-  if (_.findIndex(collections, { 'slug': slugCollection }) < 0) return false;
+var collectionExists = function(collections, collectionId) {
+  if (_.findIndex(collections, { '_id': collectionId }) < 0) return false;
   return true;
 };
 
@@ -51,7 +51,7 @@ var checkByDefaults = function(fields) {
   var messages = [];
   _.forIn(fields, function(value, key) {
     if (!_.isUndefined(value.byDefault) && _.indexOf(app.fieldsTypes, value.type) >= 0) {
-      var correctTypeAndNewValue = app.isCorrectType(value.type, value.byDefault, value.collection);
+      var correctTypeAndNewValue = app.isCorrectType(value.type, value.byDefault, value._collection);
       if (!correctTypeAndNewValue.ok)
         messages.push(value.byDefault + ' byDefault for ' + value.name + ' is not of ' + value.type + ' type');
       else value.byDefault = correctTypeAndNewValue.newValue;
@@ -61,39 +61,44 @@ var checkByDefaults = function(fields) {
   return;
 };
 
-var checkRelationalPromise = function(field, user, currentSlug) {
+var checkRelationalPromise = function(field, user, isCurrent, collectionId) {
   return new Promise(function(resolve, reject) {
-    var collectionSlug = field._collection;
+    if (!_.isUndefined(isCurrent)) {
+      //if (!_.isUndefined(field._collection) && isCurrent)
+      //  resolve('Field ' + field.name + ' should not be related with the current collection and another one at the same time');
+      if (_.isBoolean(isCurrent) && isCurrent) {
+        field._collection = collectionId;
+      //  field.thisCollection = undefined;
+      }
+    }
+    if (field._collection == collectionId)
+      resolve();
     if (_.isUndefined(field._collection)) {
       //There is no collection attribute
       resolve('Relational field ' + field.name + ' must have a referenced collection');
     }
+    //There is a collection attribute
+    if (typeof(field._collection) !== 'string') {
+      //The provided collection is not a string
+      resolve('Relational field ' + field.name + ' must have a valid collection');
+    }
     else {
-      //There is a collection attribute
-      if (typeof(field._collection) !== 'string') {
-        //The provided collection is not a string
-        resolve('Relational field ' + field.name + ' must have a valid collection');
-      }
-      else {
-        if (field._collection <= 0)
-          resolve('Empty referenced collection not found for field ' + field.name);
-        if (currentSlug === field._collection)
-          resolve();
-        //The provided collection does not exists or is not of the current user
-        model.collectionsModel.findByUserAndSlug(user, field._collection, function(err, collection) {
-          if (err || !collection) resolve('Referenced collection ' + field._collection + ' not found for field ' + field.name);
-          resolve();
-        });
-      }
+      if (field._collection <= 0)
+        resolve('Empty referenced collection not found for field ' + field.name);
+      //The provided collection does not exists or is not of the current user
+      model.collectionsModel.findByUserAndId(user, field._collection, function(err, collection) {
+        if (err || !collection) resolve('Referenced collection ' + field._collection + ' not found for field ' + field.name);
+        resolve();
+      });
     }
   });
 };
 
-var checkRelationals = function(fields, user, currentSlug) {
+var checkRelationals = function(fields, user, collectionId) {
   var relationalPromises = [];
   _.forIn(fields, function(value, key) {
     if (_.includes(app.getRelationalTypes(), value.type)) {
-      relationalPromises.push(checkRelationalPromise(value, user, currentSlug));
+      relationalPromises.push(checkRelationalPromise(value, user, value.thisCollection, collectionId));
     }
   });
   return Promise.all(relationalPromises).then(
@@ -107,7 +112,6 @@ var checkRelationals = function(fields, user, currentSlug) {
     }
   );
 };
-
 
 var checkSharedUserExists = function(userId) {
   return promise = new Promise(function(resolve, reject) {
@@ -138,11 +142,10 @@ var checkSharedUsersExists = function(shared) {
 
 var checkSharedCurrentUser = function(sharedWith, currentUserId) {
   var message;
-  console.log(sharedWith, currentUserId);
   if (_.includes(sharedWith, currentUserId))
     message = "Current user can not be in the shared users list";
   return message;
-}
+};
 
 
 //Schemas
@@ -158,7 +161,10 @@ var fieldSchema = new mongooseConfig.db.Schema ({
     betweenHigh: {},
     size: { type: Number }
   },
-  _collection: { type: String, ref: 'collectionsModel', trim: true } //for relationOne and relationMany types
+   //for relationOne and relationMany types for another collections
+  _collection: { type: String, ref: 'collectionsModel', trim: true },
+  //for relationOne and relationMany types for this current collection
+  thisCollection: { type: Boolean }
 });
 
 var collectionSchema = new mongooseConfig.db.Schema ({
@@ -191,9 +197,10 @@ collectionSchema.path('_fields').validate(function (fields, done) {
   //Check if there is at least one main field
   var messageCheckM = checkOneMainField(fields);
   if (messageCheckM) done(false, messageCheckM);
+  var collectionId = this._id;
   var user = {id: this._user};
   //Check if there is a correct collection if the type is relational
-  checkRelationals(fields, user, getSlug(this.name)).then(
+  checkRelationals(fields, user, collectionId).then(
     function (messageCheckR) {
       if (messageCheckR) done(false, messageCheckR);
       //Check if byDefault values are of the same type indicated in the fields
@@ -239,13 +246,13 @@ collectionSchema.pre('save', function(next) {
 collectionSchema.methods.getNameFields = function(condition) {
   var nameFields = [];
   var fields;
-  if (condition) fields = _.filter(this._fields, { [condition]: true });
+  if (condition) fields = _.filter(this._fields, condition);
   else fields = this._fields;
   _.forIn(fields, function(value, key) {
     nameFields.push(value.name);
   });
   return nameFields;
-}
+};
 
 collectionSchema.methods.getRelationalFields = function() {
   var fields = {};
@@ -264,7 +271,7 @@ collectionSchema.methods.getRelationalFields = function() {
     fields[value.type].push(fieldAndCollection);
   });
   return fields;
-}
+};
 
 //Statics
 collectionSchema.statics.generateCollection = function (json, user) {
@@ -275,37 +282,42 @@ collectionSchema.statics.generateCollection = function (json, user) {
     _sharedWith: json._sharedWith || [],
     publicSchema: json.publicSchema,
   });
-}
+};
 
 collectionSchema.statics.findByUser = function (user, cb) {
   return  this.find({ _user: user.id }, cb)
               .populate('_sharedWith', '-local.password')
+              .sort({name: 1})
               .select('-__v -_user -_fields');
-}
+};
 
 collectionSchema.statics.findByUserAndId = function (user, id, cb) {
   return  this.findOne({ _id: id, _user: user.id }, cb)
               .populate('_sharedWith', '-local.password')
+              .sort({name: 1})
               .select('-__v -_user -_fields');
-}
+};
 
-collectionSchema.statics.findByUserAndSlug = function (user, slugCollection, cb) {
-  return  this.findOne({ slug: slugCollection, _user: user.id }, cb)
+collectionSchema.statics.findByUserAndSlug = function (user, collectionSlug, cb) {
+  return  this.findOne({ slug: collectionSlug, _user: user.id }, cb)
               .populate('_sharedWith', '-local.password')
+              .sort({name: 1})
               .select('-__v -_user -_fields');
-}
+};
 
 collectionSchema.statics.findPublicSchemas = function (cb) {
   return  this.find({ publicSchema: true }, cb)
               .populate('_user', '-local.password')
-              .select('name _user _fields');
-}
+              .sort({name: 1})
+              .select('name _user');
+};
 
 collectionSchema.statics.findPublicSchema = function (id, cb) {
   return  this.findOne({ _id: id, publicSchema: true }, cb)
               .populate('_user', '-local.password')
+              .sort({name: 1})
               .select('-__v -_sharedWith -publicSchema');
-}
+};
 
 
 //Indexes

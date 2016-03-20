@@ -11,31 +11,31 @@ var express = require('express');
 var controller = {
 
   get: function (req, res) {
-    var slugCollection  = req.params.slugCollection;
+    var collectionId    = req.params.collectionId;
     var zrickrId        = req.params.zrickrId;
     var collections     = req.collections;
     var user            = req.user;
 
     //All User Zrickers
-    if (slugCollection === undefined && zrickrId  === undefined) {
+    if (collectionId === undefined && zrickrId  === undefined) {
       model.zrickersModel.findByUser(user, function(err, zrickers) {
     		if (err) return errors.json(res, err);
     		res.status(200).json(zrickers);
     	});
     }
     else {
-      if (!modelC.collectionExists(collections, slugCollection))
+      if (!modelC.collectionExists(collections, collectionId))
         return errors.json(res, new errors.Http404Error('Collection does not exist'));
       //User Zrickers by collection
       if (zrickrId === undefined) {
-        model.zrickersModel.findByUserAndCollection(user, slugCollection, function(err, zrickers) {
+        model.zrickersModel.findByUserAndCollection(user, collectionId, function(err, zrickers) {
           if (err) return errors.json(res, err);
           res.status(200).json(zrickers);
         });
       }
       //User Zricker identified by id and Collection
       else {
-        model.zrickersModel.findByUserAndCollectionAndId(user, slugCollection, zrickrId, function(err, zrickr) {
+        model.zrickersModel.findByUserAndCollectionAndId(user, collectionId, zrickrId, function(err, zrickr) {
           if (err) return errors.json(res, err);
           if (!zrickr)
             return errors.json(res, new errors.Http404Error('Zrickr does not exist'));
@@ -48,11 +48,11 @@ var controller = {
   insert: function (req, res) {
     var body            = req.body;
     var user            = req.user;
-    var slugCollection  = app.toTrim(body.collection);
-    
-    modelC.collectionsModel.findByUserAndSlug(user, slugCollection, function(err, collection) {
+    var collectionId    = body._collection.trim();
+
+    modelC.collectionsModel.findByUserAndId(user, collectionId, function(err, collection) {
       if (err) return errors.json(res, err);
-      if (!collection && slugCollection) //there is no collection with the provided name
+      if (!collection && collectionId) //there is no collection id provided
         return errors.json(res, new errors.Http404Error('Collection does not exist'));
       if (!collection) //no collection name provided
         collection = modelC.collectionsModel.generateCollection({}, user, {});
@@ -65,35 +65,34 @@ var controller = {
   },
 
   delete: function(req, res) {
-    var slugCollection  = req.params.slugCollection.trim();
+    var collectionId    = req.params._collection.trim();
     var zrickrId        = req.params.zrickrId;
     var user            = req.user;
     var collections     = req.collections;
 
     //All User Zrickers
-    if (slugCollection === undefined && zrickrId === undefined) {
+    if (collectionId === undefined && zrickrId === undefined) {
       model.zrickersModel.findByUser(user).remove(function(err, result) {
         if (err) return errors.json(res, err);
         res.status(200).json({numAffected: result.result.n});
       })
     }
     else {
-      if (!modelC.collectionExists(collections, slugCollection))
+      if (!modelC.collectionExists(collections, collectionId))
         return errors.json(res, new errors.Http404Error('Collection does not exist'));
       //User Zrickers by collection
       if (zrickrId === undefined) {
-        model.zrickersModel.findByUserAndCollection(user, slugCollection).remove(function(err, result) {
+        model.zrickersModel.findByUserAndCollection(user, collectionId).remove(function(err, result) {
           if (err) return errors.json(res, err);
           res.status(200).json({numAffected: result.result.n});
         })
       }
       //User Zricker identified by id and Collection
-      else {
-        model.zrickersModel.findByUserAndCollectionAndId(user, slugCollection, zrickrId).remove(function(err, removeZrickr) {
+      else
+        model.zrickersModel.findByUserAndCollectionAndId(user, collectionId, zrickrId).remove(function(err, removeZrickr) {
           if (err) return errors.json(res, err);
           res.status(200).json({numAffected: 1});
         })
-      }
     }
   }
 

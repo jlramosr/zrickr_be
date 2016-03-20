@@ -96,13 +96,13 @@ var routes = function(app, passport) {
   // Zrickers routes
   var zrickers_controller = require(path.join(__dirname, path_controllers, 'zrickers')),
   zrickers_router = express.Router()
-    .get( '/:slugCollection?/:zrickrId?',
+    .get( '/:collectionId?/:zrickrId?',
           collections_controller.getCollections,
           zrickers_controller.get)
     .post('/',
           jsonParser,
           zrickers_controller.insert)
-    .delete('/:slugCollection?/:zrickrId?',
+    .delete('/:collectionId?/:zrickrId?',
           jsonParser,
           collections_controller.getCollections,
           zrickers_controller.delete);

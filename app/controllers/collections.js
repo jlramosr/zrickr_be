@@ -79,6 +79,7 @@ var controller = {
         if (!collection)
           return errors.json(res, new errors.Http404Error('Public collection schema does not exist'));
         collection.name = body.name;
+        collection._sharedWith = body._sharedWith;
         collection.publicSchema = false;
         var newCollection = model.collectionsModel.generateCollection(collection, user);
         newCollection.save(function (err) {
@@ -108,8 +109,8 @@ var controller = {
     else {
       model.collectionsModel.findByUserAndId(user, id, function(err, collection) {
         if (err) return errors.json(res, err);
-        var slugCollection = collection.slug;
-        modelZ.zrickersModel.findByUserAndCollection(user, slugCollection).remove(function(err, result) {
+        var collectionId = collection._id;
+        modelZ.zrickersModel.findByUserAndCollection(user, collectionId).remove(function(err, result) {
           var numAffectedChildren = result.result.n;
           collection.remove(function(err, removedCollection) {
             if (err) return errors.json(res, err);

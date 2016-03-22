@@ -98,9 +98,9 @@ Is necessary to introduce Login Process Token returned in Header.Authorization =
 
 **`GET api/zrickers`**: Return all user zrickers of all collections
 
-**`GET api/zrickers/COL`**: Return all user zrickers of a collection identified by COL slug parameter
+**`GET api/zrickers/COLID`**: Return all user zrickers of a collection identified by COL id parameter
 
-**`GET api/zrickers/COL/id`**: Return user zrickr identified by ID parameter of a collection identified by COL slug parameter
+**`GET api/zrickers/COLID/ID`**: Return user zrickr identified by ID parameter of a collection identified by COL id parameter
 
 **`GET api/films`**: Return all user films
 
@@ -133,15 +133,21 @@ Is necessary to introduce Login Process Token returned in Header.Authorization =
         {
             "name": "owners",
             "type": "relationMany",
-            "collection": "my-persons"
+            "_collection": "my-persons"
         },
         {
             "name": "country",
             "type": "relationOne",
-            "collection": "my-countries",
-            "byDefault": "56e965ebb6decb581d61bc66"
+            "byDefault": "56e965ebb6decb581d61bc66",
+            "_collection": "my-countries"
+        },
+        {
+            "name": "related planes",
+            "type": "relationMany",
+            "thisCollection": true
         }
-    ]
+    ],
+    sharedWith: ["56e965eba6decf581d61bc12", "56e965ebae1ecb581d621bc15"]
 }
 `**: Insert an user customized collection
 
@@ -149,7 +155,7 @@ Is necessary to introduce Login Process Token returned in Header.Authorization =
 
 **`POST api/zrickers
 {
-  "_collection": "war-planes",
+  "_collection": "56efbeb7211f63fc373c66bb",
   "color": "red",
   "brand": "Opel",
   "sadsad": "noinsert",
@@ -168,9 +174,9 @@ Is necessary to introduce Login Process Token returned in Header.Authorization =
 
 **`DELETE api/zrickers`**: Delete all user zrickers
 
-**`DELETE api/zrickers/COL`**: Delete all user zrickers of a collection identified by COL slug parameter
+**`DELETE api/zrickers/COLID`**: Delete all user zrickers of a collection identified by COL id parameter
 
-**`DELETE api/zrickers/COL/ID`**: Delete zrickr identified by ID parameter of a collection identified by COL slug parameter
+**`DELETE api/zrickers/COLID/ID`**: Delete zrickr identified by ID parameter of a collection identified by COL id parameter
 
 **`DELETE api/films/ID`**: Delete user film identified by ID parameter
 
@@ -190,4 +196,6 @@ Besides the name and type of a field, we are able to add the next properties:
 
 **`byDefault`**: Value by default applied to the field if the user doesn't fill anything
 
-**`collection`**: If the type is relational, this property indicate the slug of the related collection
+**`_collection`**: If the type is relational, this property indicate the id of the related collection
+
+**`thisCollection`**: If the type is relational, this property indicate the related collection is the current one. This property tread `_collection`

@@ -15,6 +15,7 @@ var session = function(app, passport) {
       model.model.findOne( {'local.email': username}, function(err, user) {
         if (err) return done(err);
         if (!user) done(null, false, { message: 'Incorrect Username' });
+        else
         user.comparePassword(password, function (err, isMatch) {
           if (isMatch) {
             return done(null, user);

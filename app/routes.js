@@ -69,21 +69,11 @@ var routes = function(app, passport) {
   app.use(nameMainRoute + '/users', users_router);
 
 
-
-  // Index routes
-  var index_controller = require(path.join(__dirname, path_controllers, 'index'));
-  index_router = express.Router()
-    .get( '/',
-          index_controller.get);
-  app.use('/', index_router);
-
-
   // Collections routes
   var collections_controller = require(path.join(__dirname, path_controllers, 'collections')),
   collections_router = express.Router()
     .get( '/:id?',
-          collections_controller.getCollections,
-          collections_controller.get)
+          collections_controller.getCollections)
     .post('/:id?',
           jsonParser,
           collections_controller.insert)
@@ -97,33 +87,14 @@ var routes = function(app, passport) {
   var zrickers_controller = require(path.join(__dirname, path_controllers, 'zrickers')),
   zrickers_router = express.Router()
     .get( '/:collectionId?/:zrickrId?',
-          collections_controller.getCollections,
           zrickers_controller.get)
     .post('/',
           jsonParser,
           zrickers_controller.insert)
     .delete('/:collectionId?/:zrickrId?',
           jsonParser,
-          collections_controller.getCollections,
           zrickers_controller.delete);
   app.use(nameMainRoute + '/zrickers', zrickers_router);
-
-
-  // Films routes
-  var films_controller = require(path.join(__dirname, path_controllers, 'films')),
-  films_router = express.Router()
-    .get( '/:id?',
-          films_controller.get)
-    .post('/',
-          jsonParser,
-          films_controller.insert)
-    .put( '/:id?',
-          jsonParser,
-          films_controller.update)
-    .delete('/:id?',
-          jsonParser,
-          films_controller.delete);
-  app.use(nameMainRoute + '/films', films_router);
 
 
   // Public routes
@@ -132,6 +103,13 @@ var routes = function(app, passport) {
           collections_controller.getPublicCollections);
   app.use(nameMainRoute + '/public', public_router);
 
+  // Shared routes
+  shared_router = express.Router();
+    /*.get( '/collections/:id?',
+          collections_controller.getSharedCollections);*/
+    /*.get( '/zrickers/:collectionId?/:zrickrId?',
+          collections_controller.getSharedCollections);*/
+  app.use(nameMainRoute + '/shared', shared_router);
 
   //Error Middlewares
   app.use(function(req, res, next) {

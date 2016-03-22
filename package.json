@@ -1,6 +1,6 @@
 {
   "name": "zrickr_be",
-  "version": "1.3.0",
+  "version": "1.3.1",
   "description": "Zrickr Backend",
   "main": "app/server.js",
   "scripts": {
@@ -9,8 +9,8 @@
     "debug2": "node --debug-brk app/server.js",
     "test": "mocha app/tests/*",
     "build": "gulp build",
-    "git-commit": "git add -A . && git commit -a -m 'gh-pages update'",
-    "git-push": "git push origin gh-pages --force && git checkout master",
+    "git-commit": "git add -A . && git commit -a -m 'master update'",
+    "git-push": "git push origin master --force && git checkout master",
     "deploy": "npm run build && npm run git-commit && npm run git-push"
   },
   "author": "Jose Ramos",

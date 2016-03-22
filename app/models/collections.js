@@ -1,5 +1,6 @@
-var mongooseConfig = require('../config/db');
+var mongoose = require('../config/db');
 var app = require('../config/app');
+var errors = require('../config/error');
 
 var modelU = require('../models/users');
 
@@ -10,15 +11,6 @@ var _ = require("lodash");
 
 
 //Generic Functions
-var getSlug = function(name) {
-  return mongooseConfig.slugify(name.toLowerCase());
-};
-
-var collectionExists = function(collections, collectionId) {
-  if (_.findIndex(collections, { '_id': collectionId }) < 0) return false;
-  return true;
-};
-
 var checkFieldsExist = function(fields) {
   var message;
   if (!fields.length)
@@ -50,12 +42,15 @@ var checkOneMainField = function(fields) {
 var checkByDefaults = function(fields) {
   var messages = [];
   _.forIn(fields, function(value, key) {
-    if (!_.isUndefined(value.byDefault) && _.indexOf(app.fieldsTypes, value.type) >= 0) {
-      var correctTypeAndNewValue = app.isCorrectType(value.type, value.byDefault, value._collection);
-      if (!correctTypeAndNewValue.ok)
-        messages.push(value.byDefault + ' byDefault for ' + value.name + ' is not of ' + value.type + ' type');
-      else value.byDefault = correctTypeAndNewValue.newValue;
-    }
+    if (!_.isUndefined(value.byDefault) && _.indexOf(app.getRelationalTypes(), value.type) >= 0)
+      messages.push('It can not be a default value for the relational type of ' + value.name + ' field');
+    else
+      if (!_.isUndefined(value.byDefault) && _.indexOf(app.fieldsTypes, value.type) >= 0) {
+        var correctTypeAndNewValue = app.isCorrectType(value.type, value.byDefault, value._collection);
+        if (!correctTypeAndNewValue.ok)
+          messages.push(value.byDefault + ' byDefault for ' + value.name + ' is not of ' + value.type + ' type');
+        else value.byDefault = correctTypeAndNewValue.newValue;
+      }
   });
   if (messages.length) return messages.join(', ');
   return;
@@ -64,11 +59,8 @@ var checkByDefaults = function(fields) {
 var checkRelationalPromise = function(field, user, isCurrent, collectionId) {
   return new Promise(function(resolve, reject) {
     if (!_.isUndefined(isCurrent)) {
-      //if (!_.isUndefined(field._collection) && isCurrent)
-      //  resolve('Field ' + field.name + ' should not be related with the current collection and another one at the same time');
       if (_.isBoolean(isCurrent) && isCurrent) {
         field._collection = collectionId;
-      //  field.thisCollection = undefined;
       }
     }
     if (field._collection == collectionId)
@@ -86,7 +78,7 @@ var checkRelationalPromise = function(field, user, isCurrent, collectionId) {
       if (field._collection <= 0)
         resolve('Empty referenced collection not found for field ' + field.name);
       //The provided collection does not exists or is not of the current user
-      model.collectionsModel.findByUserAndId(user, field._collection, function(err, collection) {
+      model.collectionsModel.findCollectionByUserAndId(user, field._collection, function(err, collection) {
         if (err || !collection) resolve('Referenced collection ' + field._collection + ' not found for field ' + field.name);
         resolve();
       });
@@ -149,7 +141,7 @@ var checkSharedCurrentUser = function(sharedWith, currentUserId) {
 
 
 //Schemas
-var fieldSchema = new mongooseConfig.db.Schema ({
+var fieldSchema = new mongoose.db.Schema ({
   name: { type: String, required: true, trim: true },
   type: { type: String, enum: app.fieldsTypes, required: true, trim: true },
   required: { type: Boolean },
@@ -167,7 +159,7 @@ var fieldSchema = new mongooseConfig.db.Schema ({
   thisCollection: { type: Boolean }
 });
 
-var collectionSchema = new mongooseConfig.db.Schema ({
+var collectionSchema = new mongoose.db.Schema ({
   name: { type: String, required: true, trim: true },
   slug: { type: String, trim: true },
   publicSchema: { type: String, default: false},
@@ -177,7 +169,7 @@ var collectionSchema = new mongooseConfig.db.Schema ({
 });
 
 //Add createAt and updateAt fields to the Schemas
-collectionSchema.plugin(mongooseConfig.timestamps);
+collectionSchema.plugin(mongoose.timestamps);
 
 //Add virtuals to results
 /*collectionSchema.set('toJSON', {
@@ -193,7 +185,7 @@ collectionSchema.path('_fields').validate(function (fields, done) {
   if (messageCheckE) done(false, messageCheckE);
   //Check if there are repeated name fields
   var messageCheckRp = checkRepeatedFields(this.getNameFields());
-  if (messageCheckRp) done(false, messageCheckRp);
+  if (messageCheckRp) done(false,messageCheckRp);
   //Check if there is at least one main field
   var messageCheckM = checkOneMainField(fields);
   if (messageCheckM) done(false, messageCheckM);
@@ -209,7 +201,7 @@ collectionSchema.path('_fields').validate(function (fields, done) {
       done();
     },
     function (err) {
-      done(false, err);
+      done(false, err.name);
     }
   );
 });
@@ -229,7 +221,7 @@ collectionSchema.path('_sharedWith').validate(function (sharedWith, done) {
       done();
     },
     function (err) {
-      done(false, err);
+      done(false, err.name);
     }
   );
 });
@@ -237,7 +229,7 @@ collectionSchema.path('_sharedWith').validate(function (sharedWith, done) {
 
 //Serials
 collectionSchema.pre('save', function(next) {
-  this.slug = getSlug(this.name);
+  this.slug = app.getSlug(this.name);
   next();
 });
 
@@ -284,39 +276,38 @@ collectionSchema.statics.generateCollection = function (json, user) {
   });
 };
 
-collectionSchema.statics.findByUser = function (user, cb) {
-  return  this.find({ _user: user.id }, cb)
-              .populate('_sharedWith', '-local.password')
-              .sort({name: 1})
-              .select('-__v -_user -_fields');
+collectionSchema.statics.findCollectionsByUser = function (user, cb) {
+  this.find({ _user: user.id })
+      .populate('_sharedWith', '-local.password')
+      .sort({name: 1})
+      .select('-__v')
+      .exec(function(err, collections) {
+          cb(err,collections);
+      });
 };
 
-collectionSchema.statics.findByUserAndId = function (user, id, cb) {
-  return  this.findOne({ _id: id, _user: user.id }, cb)
-              .populate('_sharedWith', '-local.password')
-              .sort({name: 1})
-              .select('-__v -_user -_fields');
-};
-
-collectionSchema.statics.findByUserAndSlug = function (user, collectionSlug, cb) {
-  return  this.findOne({ slug: collectionSlug, _user: user.id }, cb)
-              .populate('_sharedWith', '-local.password')
-              .sort({name: 1})
-              .select('-__v -_user -_fields');
+collectionSchema.statics.findCollectionByUserAndId = function (user, id, cb) {
+  this.findOne({_id: id, _user: user.id })
+      .populate('_sharedWith', '-local.password')
+      .sort({name: 1})
+      .select('-__v')
+      .exec(function(err, collection) {
+        cb(err,collection);
+      });
 };
 
 collectionSchema.statics.findPublicSchemas = function (cb) {
-  return  this.find({ publicSchema: true }, cb)
-              .populate('_user', '-local.password')
-              .sort({name: 1})
-              .select('name _user');
+  this.find({ publicSchema: true }, cb)
+      .populate('_user', '-local.password')
+      .sort({name: 1})
+      .select('name _user');
 };
 
 collectionSchema.statics.findPublicSchema = function (id, cb) {
-  return  this.findOne({ _id: id, publicSchema: true }, cb)
-              .populate('_user', '-local.password')
-              .sort({name: 1})
-              .select('-__v -_sharedWith -publicSchema');
+  this.findOne({_id: id, publicSchema: true }, cb)
+      .populate('_user', '-local.password')
+      .sort({name: 1})
+      .select('-__v -_sharedWith -publicSchema');
 };
 
 
@@ -327,8 +318,7 @@ collectionSchema.index({ slug: 1, _user: 1}, { unique: true });
 
 
 var model = {
-  collectionsModel:   mongooseConfig.db.model(nameCollectionsModel, collectionSchema),
-  collectionExists:   collectionExists
+  collectionsModel:   mongoose.db.model(nameCollectionsModel, collectionSchema)
 };
 
 module.exports = model;

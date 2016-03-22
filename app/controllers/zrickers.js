@@ -5,6 +5,7 @@ var errors = require('../config/error');
 var logger = require("../config/logger");
 var app = require("../config/app");
 
+
 var express = require('express');
 
 
@@ -13,50 +14,51 @@ var controller = {
   get: function (req, res) {
     var collectionId    = req.params.collectionId;
     var zrickrId        = req.params.zrickrId;
-    var collections     = req.collections;
     var user            = req.user;
 
     //All User Zrickers
     if (collectionId === undefined && zrickrId  === undefined) {
-      model.zrickersModel.findByUser(user, function(err, zrickers) {
+      model.zrickersModel.findZrickersByUser(user, function(err, zrickers) {
     		if (err) return errors.json(res, err);
-    		res.status(200).json(zrickers);
+        res.status(200).json(zrickers);
     	});
     }
     else {
-      if (!modelC.collectionExists(collections, collectionId))
-        return errors.json(res, new errors.Http404Error('Collection does not exist'));
-      //User Zrickers by collection
-      if (zrickrId === undefined) {
-        model.zrickersModel.findByUserAndCollection(user, collectionId, function(err, zrickers) {
-          if (err) return errors.json(res, err);
-          res.status(200).json(zrickers);
-        });
-      }
-      //User Zricker identified by id and Collection
-      else {
-        model.zrickersModel.findByUserAndCollectionAndId(user, collectionId, zrickrId, function(err, zrickr) {
-          if (err) return errors.json(res, err);
-          if (!zrickr)
-            return errors.json(res, new errors.Http404Error('Zrickr does not exist'));
-          res.status(200).json(zrickr);
-        });
-      }
+      //Check if collection exists
+      modelC.collectionsModel.findCollectionByUserAndId(user, collectionId, function(err, collection) {
+        if (err) return errors.json(res, err);
+        if (!collection) return errors.json(res, new errors.Http404Error('Collection ' + collectionId + ' does not exist'));
+        //User Zricker identified by collection
+        if (zrickrId === undefined) {
+          model.zrickersModel.findZrickersByUserAndCollection(user, collectionId, function(err, zrickers) {
+            if (err) return errors.json(res, err);
+            res.status(200).json(zrickers);
+          });
+        }
+        //User Zricker identified by id and Collection
+        else {
+          model.zrickersModel.findZrickrByUserAndCollectionAndId(user, collectionId, zrickrId, function(err, zrickr) {
+            if (err) return errors.json(res, err);
+            if (!zrickr) return errors.json(res, new errors.Http404Error('Zrickr ' + zrickrId + ' does not exist'));
+            res.status(200).json(zrickr);
+          });
+        }
+      });
     }
   },
 
   insert: function (req, res) {
     var body            = req.body;
     var user            = req.user;
-    var collectionId    = body._collection.trim();
+    var collectionId    = body._collection;
 
-    modelC.collectionsModel.findByUserAndId(user, collectionId, function(err, collection) {
+    if (collectionId === undefined)
+      return errors.json(res, new errors.Http500Error('No collection provided'));
+    modelC.collectionsModel.findCollectionByUserAndId(user, collectionId.trim(), function(err, collection) {
       if (err) return errors.json(res, err);
-      if (!collection && collectionId) //there is no collection id provided
-        return errors.json(res, new errors.Http404Error('Collection does not exist'));
-      if (!collection) //no collection name provided
-        collection = modelC.collectionsModel.generateCollection({}, user, {});
-      var zrickr = model.zrickersModel.generateZrickr(body, user, collection);
+      if (!collection)
+        return errors.json(res, new errors.Http404Error('Collection ' + collectionId.trim()  + ' does not exist'));
+      var zrickr = model.zrickersModel.generateZrickr(body, collection);
       zrickr.save(function (err) {
         if (err) return errors.json(res, err);
         res.status(200).json(zrickr);
@@ -65,34 +67,37 @@ var controller = {
   },
 
   delete: function(req, res) {
-    var collectionId    = req.params._collection.trim();
+    var collectionId    = req.params.collectionId;
     var zrickrId        = req.params.zrickrId;
     var user            = req.user;
-    var collections     = req.collections;
 
     //All User Zrickers
     if (collectionId === undefined && zrickrId === undefined) {
-      model.zrickersModel.findByUser(user).remove(function(err, result) {
+      model.zrickersModel.removeZrickersByUser(user, function(err, result) {
         if (err) return errors.json(res, err);
         res.status(200).json({numAffected: result.result.n});
-      })
+      });
     }
     else {
-      if (!modelC.collectionExists(collections, collectionId))
-        return errors.json(res, new errors.Http404Error('Collection does not exist'));
-      //User Zrickers by collection
-      if (zrickrId === undefined) {
-        model.zrickersModel.findByUserAndCollection(user, collectionId).remove(function(err, result) {
-          if (err) return errors.json(res, err);
-          res.status(200).json({numAffected: result.result.n});
-        })
-      }
-      //User Zricker identified by id and Collection
-      else
-        model.zrickersModel.findByUserAndCollectionAndId(user, collectionId, zrickrId).remove(function(err, removeZrickr) {
-          if (err) return errors.json(res, err);
-          res.status(200).json({numAffected: 1});
-        })
+      //Check if collection exists
+      modelC.collectionsModel.findCollectionByUserAndId(user, collectionId, function(err, collection) {
+        if (err) return errors.json(res, err);
+        if (!collection) return errors.json(res, new errors.Http404Error('Collection ' + collectionId + ' does not exist'));
+        //User Zrickers by collection
+        if (zrickrId === undefined) {
+          model.zrickersModel.removeZrickersByUserAndCollection(user, collectionId, function(err, result) {
+            if (err) return errors.json(res, err);
+            res.status(200).json({numAffected: result.result.n});
+          });
+        }
+        //User Zricker identified by id and Collection
+        else
+          model.zrickersModel.removeZrickrByUserAndCollectionAndId(user, collectionId, zrickrId, function(err, result) {
+            if (err) return errors.json(res, err);
+            if (!result) return errors.json(res, new errors.Http404Error('Zrickr ' + zrickrId + ' does not exist'));
+            res.status(200).json({numAffected: result});
+          })
+      });
     }
   }
 

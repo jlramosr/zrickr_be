@@ -1,4 +1,4 @@
-var mongooseConfig = require('../config/db');
+var mongoose = require('../config/db');
 var app = require('../config/app');
 
 var modelC = require('../models/collections');
@@ -76,7 +76,7 @@ var checkRelationalFields = function(collection, values, user) {
           var promise = new Promise(function(resolve,reject) {
             if (zrickrId.length <= 0)
               resolve('Empty referenced zrickr of collection ' + collectionId + ' not found for field ' + nameField);
-            model.zrickersModel.findByUserAndCollectionAndId(user, collectionId, zrickrId, function(err, zrickr) {
+            model.zrickersModel.findZrickrByUserAndCollectionAndId(user, collectionId, zrickrId, function(err, zrickr) {
               if (err || !zrickr) resolve('Referenced ' + zrickrId + ' zrickr of collection ' + collectionId + ' not found for field ' + nameField);
               resolve();
             });
@@ -98,24 +98,23 @@ var checkRelationalFields = function(collection, values, user) {
 
 
 //Schemas
-var zrickrSchema = new mongooseConfig.db.Schema ({
+var zrickrSchema = new mongoose.db.Schema ({
   _collection: { type: String, required: true, ref: 'Collection', trim: true },
   slug: { type: String, trim: true },
   values : {}
 }, {strict: false}, { shardKey: { slug: 1 }});
 
 //Add createAt and updateAt fields to the Schemas
-zrickrSchema.plugin(mongooseConfig.timestamps);
+zrickrSchema.plugin(mongoose.timestamps);
 
 
 
 //Validations
 zrickrSchema.path('values').validate(function (values, done) {
-  var user = {id: this._user};
   var collectionId = this._collection;
-  modelC.collectionsModel.findByUserAndId(user, collectionId, function(err, collection) {
+  modelC.collectionsModel.findById(collectionId, function(err, collection) {
     if (err) done(err);
-    if (!collection) done(false, "Collection " + collectionId + 'not exists')
+    if (!collection) done(false, "Collection " + collectionId + ' does not exist')
     //Check if required fields are filled
     var requiredFields = collection.getNameFields("required");
     var messageCheckR = checkRequiredFields(requiredFields, values);
@@ -125,8 +124,9 @@ zrickrSchema.path('values').validate(function (values, done) {
     var messageCheckT = checkFieldTypes(fieldsWithType, values);
     if (messageCheckT) done(false, messageCheckT);
 
-    var promiseUniqueFields = model.zrickersModel.findByUserAndCollection(user, collectionId, function(err, zrickers) {
-      if (err) done(err);
+    var user = {_id: collection._user};
+    var promiseUniqueFields = model.zrickersModel.find({_collection: collectionId}, function(err, zrickers) {
+      if (err) done(false, err.name);
       return zrickers;
     });
     promiseUniqueFields.then(function(zrickers) {
@@ -141,7 +141,7 @@ zrickrSchema.path('values').validate(function (values, done) {
           done();
         },
         function (err) {
-          done(false, err);
+          done(false, err.name);
         }
       );
     })
@@ -153,7 +153,6 @@ zrickrSchema.path('values').validate(function (values, done) {
 //Serials
 zrickrSchema.pre('save', function(next) {
   var zrickr = this;
-  var user = {id: this._user};
   var values = this.values;
 
   //Trim all values
@@ -162,7 +161,7 @@ zrickrSchema.pre('save', function(next) {
   });
 
 
-  modelC.collectionsModel.findByUserAndId(user, this._collection, function(err, collection) {
+  modelC.collectionsModel.findById(this._collection, function(err, collection) {
     if (err) next(err);
     //Generate slug by referencing main fields of the collection
     var mainFields = collection.getNameFields("main");
@@ -197,37 +196,108 @@ zrickrSchema.statics.generateZrickr = function (json, collection) {
   return zrickr;
 }
 
-zrickrSchema.statics.findByUser = function (user, cb) {
-  return  this.find({}, cb)
-              .populate({
-                path: '_collection',
-                match: { _user: { _id: user.id } },
-                select: 'name _user',
-                options: {}
-              })
-              .select('_id slug values');
+zrickrSchema.statics.findZrickersByUser = function (user, cb) {
+  this.find({})
+      .populate({
+        path: '_collection',
+        match: { _user: user.id },
+        select: 'name',
+        options: {}
+      })
+      .select('slug values _collection')
+      .exec(function(err, zrickers) {
+        cb(err, _.filter(zrickers, function(o) {return o._collection != null}));
+      });
 }
 
-zrickrSchema.statics.findByUserAndCollection = function (user, collectionId, cb) {
-  return  this.find({}, cb)
-              .populate({
-                path: '_collection',
-                match: { _id: collectionId, _user: { _id: user.id } },
-                select: 'name _user',
-                options: {}
-              })
-              .select('_id slug values');
+zrickrSchema.statics.removeZrickersByUser = function (user, cb) {
+  this.find({})
+      .populate({
+        path: '_collection',
+        match: { _user: user.id },
+        select: '_id',
+        options: {}
+      })
+      .select('_id _collection')
+      .exec(function(err, zrickers) {
+        if (err) cb(err);
+        else {
+          var filterZrickers = _.filter(zrickers, function(o) {return o._collection != null});
+          var filterZrickersIds = _.map(filterZrickers, '_id');
+          model.zrickersModel.remove({_id: {$in: filterZrickersIds}}, function (err, result) {
+            cb(err, result);
+          });
+        }
+      });
 }
 
-zrickrSchema.statics.findByUserAndCollectionAndId = function (user, collectionId, id, cb) {
-  return  this.findOne({ _id: id }, cb)
-              .populate({
-                path: '_collection',
-                match: { _id: collectionId, _user: { _id: user.id } },
-                select: 'name _user',
-                options: {}
-              })
-              .select('_id slug values');
+zrickrSchema.statics.findZrickersByUserAndCollection = function (user, collectionId, cb) {
+  this.find({_collection: collectionId})
+      .populate({
+        path: '_collection',
+        match: {_user: user.id },
+        select: 'name',
+        options: {}
+      })
+      .select('slug values _collection')
+      .exec(function(err, zrickers) {
+        cb(err, _.filter(zrickers, function(o) {return o._collection != null}));
+      });
+}
+
+zrickrSchema.statics.removeZrickersByUserAndCollection = function (user, collectionId, cb) {
+  this.find({_collection: collectionId})
+      .populate({
+        path: '_collection',
+        match: {_user: user.id },
+        select: '_id',
+        options: {}
+      })
+      .select('_id _collection')
+      .exec(function(err, zrickers) {
+        if (err) cb(err);
+        else {
+          var filterZrickers = _.filter(zrickers, function(o) {return o._collection != null});
+          var filterZrickersIds = _.map(filterZrickers, '_id');
+          model.zrickersModel.remove({_id: {$in: filterZrickersIds}}, function (err, result) {
+            cb(err, result);
+          });
+        }
+      });
+}
+
+zrickrSchema.statics.findZrickrByUserAndCollectionAndId = function (user, collectionId, id, cb) {
+  this.findOne({_id: id, _collection: collectionId})
+      .populate({
+        path: '_collection',
+        match: { _user: user.id },
+        select: 'name _collection',
+        options: {}
+      })
+      .select('slug values _collection')
+      .exec(function(err, zrickr) {
+        if (err || !zrickr) cb(err, zrickr);
+        else if (zrickr._collection === null) zrickr = null;
+        else cb(err, zrickr);
+      });
+}
+
+zrickrSchema.statics.removeZrickrByUserAndCollectionAndId = function (user, collectionId, id, cb) {
+  this.findOne({_id: id, _collection: collectionId})
+      .populate({
+        path: '_collection',
+        match: { _user: user.id },
+        select: '_id',
+        options: {}
+      })
+      .select('_id _collection')
+      .exec(function(err, zrickr) {
+        if (err || !zrickr) cb(err, zrickr);
+        else model.zrickersModel.remove({_id: zrickr._id}, function (err, result) {
+          if (err) cb(err);
+          else cb(err, 1);
+        });
+      });
 }
 
 
@@ -237,7 +307,7 @@ zrickrSchema.statics.findByUserAndCollectionAndId = function (user, collectionId
 
 
 var model = {
-  zrickersModel: mongooseConfig.db.model(nameZrickersModel, zrickrSchema),
+  zrickersModel: mongoose.db.model(nameZrickersModel, zrickrSchema),
 };
 
 module.exports = model;

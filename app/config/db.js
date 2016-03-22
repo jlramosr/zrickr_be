@@ -10,10 +10,18 @@ var err         = false;
 var logger   = require("../config/logger");
 
 var mongoose = {
-  db:          require('mongoose'),
-  timestamps:  require('mongoose-timestamp'),
-  slugify:     require('slugify'),
-  bcrypt:      require('bcrypt')
+  db:           require('mongoose'),
+  timestamps:   require('mongoose-timestamp'),
+  bcrypt:       require('bcrypt'),
+  toObjectId:
+    function(id) {
+      return this.db.Types.ObjectId(id);
+    },
+  isValidId:
+    function(id) {
+      return this.db.Types.ObjectId.isValid(id);
+    }
+
 }
 
 var _startDB = function (namedb) {

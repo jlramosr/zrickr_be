@@ -15,27 +15,21 @@ var controller = {
 
     //All User Collections
     if (id === undefined) {
-      model.collectionsModel.findByUser(user, function(err, collections) {
+      model.collectionsModel.findCollectionsByUser(user, function(err, collections) {
     		if (err) return errors.json(res, err);
-    		req.collections = collections;
-        next();
+    		res.status(200).json(collections);
     	});
     }
     //User Collection by id
     else {
-      model.collectionsModel.findByUserAndId(user, id, function (err, collection) {
+      model.collectionsModel.findCollectionByUserAndId(user, id, function (err, collection) {
+        console.log("HOLA", err);
         if (err) return errors.json(res, err);
         if (!collection)
-          return errors.json(res, new errors.Http404Error('Collection does not exist'));
-        req.collections = [collection];
-        next();
+          return errors.json(res, new errors.Http404Error('Collection ' + id + ' does not exist'));
+        res.status(200).json(collection);
       });
     }
-  },
-
-  get: function (req, res) {
-    if (!req.collections) return errors.json(res, new errors.Http404Error('Collections does not exist'));
-    res.status(200).json(req.collections);
   },
 
   getPublicCollections: function (req, res, next) {
@@ -53,7 +47,7 @@ var controller = {
       model.collectionsModel.findPublicSchema(id, function (err, collection) {
         if (err) return errors.json(res, err);
         if (!collection)
-          return errors.json(res, new errors.Http404Error('Public collection schema does not exist'));
+          return errors.json(res, new errors.Http404Error('Public collection schema ' + id + ' does not exist'));
         res.status(200).json(collection);
       });
     }
@@ -77,9 +71,9 @@ var controller = {
       model.collectionsModel.findPublicSchema(id, function (err, collection) {
         if (err) return errors.json(res, err);
         if (!collection)
-          return errors.json(res, new errors.Http404Error('Public collection schema does not exist'));
+          return errors.json(res, new errors.Http404Error('Public collection schema ' + id + ' does not exist'));
         collection.name = body.name;
-        collection._sharedWith = body._sharedWith;
+        collection._sharedWith = body._sharedWith || [];
         collection.publicSchema = false;
         var newCollection = model.collectionsModel.generateCollection(collection, user);
         newCollection.save(function (err) {
@@ -96,10 +90,10 @@ var controller = {
 
     //All User Collections
     if (!id) {
-      modelZ.zrickersModel.findByUser(user).remove(function(err, result) {
+      modelZ.zrickersModel.findZrickersByUser(user).remove(function(err, result) {
         if (err) return errors.json(res, err);
         var numAffectedChildren = result.result.n;
-        model.collectionsModel.findByUser(user).remove(function(err, result) {
+        model.collectionsModel.findCollectionsByUser(user).remove(function(err, result) {
           if (err) return errors.json(res, err);
           res.status(200).json({numAffected: result.result.n, numAffectedZrickers: numAffectedChildren});
         });
@@ -107,10 +101,10 @@ var controller = {
     }
     //User Collection by id
     else {
-      model.collectionsModel.findByUserAndId(user, id, function(err, collection) {
+      model.collectionsModel.findCollectionByUserAndId(user, id, function(err, collection) {
         if (err) return errors.json(res, err);
         var collectionId = collection._id;
-        modelZ.zrickersModel.findByUserAndCollection(user, collectionId).remove(function(err, result) {
+        modelZ.zrickersModel.findZrickersByUserAndCollection(user, collectionId).remove(function(err, result) {
           var numAffectedChildren = result.result.n;
           collection.remove(function(err, removedCollection) {
             if (err) return errors.json(res, err);

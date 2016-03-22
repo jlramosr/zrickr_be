@@ -21,29 +21,32 @@ errors.json = function (res, error) {
   var message = error.message;
   if (lastKeyMessage) message = error.errors[lastKeyMessage].message;
 
-  //Validation Errors
   if (errorName == 'ValidationError') {
     error.message = message;
-    error.code = 404;
+    error.code = 403;
   }
 
-  //Cast Errors
   if (error.name == 'CastError') {
     error.code = 404;
     error.message = error.value + ' does not exist';
   }
 
-  //Mongo Errors
   if (errorName == 'MongoError') {
     if (error.code === 11000) {
       error.explanation = message;
       error.message = 'Duplicate values';
-      error.code = 404;
+      error.code = 409;
     }
   }
 
+  if (errorName == 'SyntaxError') {
+      error.explanation = message;
+      error.message = 'JSON malformed';
+      error.code = 400;
+  }
+
   //Generate code of error
-  if (!error.code) error.code = 500;
+  if (!error.code) error.code = 400;
   if (error.code >= 400 || error.code < 500)
     logger.warn(errorName + ' ' +  error.message);
   else
@@ -52,25 +55,6 @@ errors.json = function (res, error) {
 
   res.status(error.code).json(getError(error));
 }
-
-/* Deprecated */
-errors.manageError = function (res, err, statusCode, messageConsole, messageJSON, summaryJSON) {
-    res.statusCode = statusCode;
-    var resJSON = { error: messageJSON };
-    if (summaryJSON) {
-      resJSON.summary = summaryJSON;
-    }
-    if (!err) {
-      logger.warn(messageConsole + '(' + res.statusCode + ') ');
-    }
-    else {
-      logger.error(messageConsole + '(' + res.statusCode + ') ' +  (err.message || ''));
-      if (err.message && !summaryJSON) {
-        resJSON.summary = err.message;
-      }
-    }
-    return res.json(resJSON);
-  };
 
 /*errors.create({
   name: 'FileNotFoundError',

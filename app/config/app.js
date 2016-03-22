@@ -1,5 +1,7 @@
 var _ = require("lodash");
 
+var slugify = require('slugify');
+
 var app = {
 
   fieldsTypes: ['boolean', 'string', 'number', 'integer', 'date', 'image', 'relationOne', 'relationMany'],
@@ -43,6 +45,17 @@ var app = {
     if (values.length !== _.uniq(values).length)
       return false;
     return true;
+  },
+
+  getSlug: function(name) {
+    return slugify(name.toLowerCase());
+  },
+
+  collectionExists: function(collections, collectionId) {
+    var exist = _(collections).forEach(function (value) {
+      if (value._id == collectionId) return value;
+    });
+    return (!_.isUndefined(exist))
   },
 
   isCorrectType: function (type, value, collection) {

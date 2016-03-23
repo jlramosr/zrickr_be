@@ -62,7 +62,7 @@ Download and install Visual Studio with option "Programming Language = visual c+
 
 ## Proyect Installation
 
-`git clone https://github.com/jlramosr/zrickr_be.git zrickr_be`
+`git clone https://jlramosr@bitbucket.org/jlramosr/zrickr_be.git zrickr_be`
 
 `cd zrickr_be && npm install`
 

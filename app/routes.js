@@ -73,7 +73,7 @@ var routes = function(app, passport) {
   var collections_controller = require(path.join(__dirname, path_controllers, 'collections')),
   collections_router = express.Router()
     .get( '/:id?',
-          collections_controller.getCollections)
+          collections_controller.get)
     .post('/:id?',
           jsonParser,
           collections_controller.insert)
@@ -100,15 +100,15 @@ var routes = function(app, passport) {
   // Public routes
   public_router = express.Router()
     .get( '/collections/:id?',
-          collections_controller.getPublicCollections);
+          collections_controller.getPublic);
   app.use(nameMainRoute + '/public', public_router);
 
   // Shared routes
-  shared_router = express.Router();
-    /*.get( '/collections/:id?',
-          collections_controller.getSharedCollections);*/
-    /*.get( '/zrickers/:collectionId?/:zrickrId?',
-          collections_controller.getSharedCollections);*/
+  shared_router = express.Router()
+    .get( '/collections/:id?',
+          collections_controller.getShared)
+    .get( '/zrickers/:collectionId?/:zrickrId?',
+          zrickers_controller.getShared);
   app.use(nameMainRoute + '/shared', shared_router);
 
   //Error Middlewares

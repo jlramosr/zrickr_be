@@ -1,6 +1,5 @@
 var mongoose = require('../config/db');
 var app = require('../config/app');
-var errors = require('../config/error');
 
 var modelU = require('../models/users');
 
@@ -78,7 +77,7 @@ var checkRelationalPromise = function(field, user, isCurrent, collectionId) {
       if (field._collection <= 0)
         resolve('Empty referenced collection not found for field ' + field.name);
       //The provided collection does not exists or is not of the current user
-      model.collectionsModel.findCollectionByUserAndId(user, field._collection, function(err, collection) {
+      model.collectionsModel.findCollection(user, field._collection, function(err, collection) {
         if (err || !collection) resolve('Referenced collection ' + field._collection + ' not found for field ' + field.name);
         resolve();
       });
@@ -276,7 +275,7 @@ collectionSchema.statics.generateCollection = function (json, user) {
   });
 };
 
-collectionSchema.statics.findCollectionsByUser = function (user, cb) {
+collectionSchema.statics.findCollections = function (user, cb) {
   this.find({ _user: user.id })
       .populate('_sharedWith', '-local.password')
       .sort({name: 1})
@@ -286,8 +285,9 @@ collectionSchema.statics.findCollectionsByUser = function (user, cb) {
       });
 };
 
-collectionSchema.statics.findCollectionByUserAndId = function (user, id, cb) {
-  this.findOne({_id: id, _user: user.id })
+collectionSchema.statics.findCollection = function (user, id, cb) {
+  if (mongoose.checkCorrectIds([id], cb))
+  this.findOne({_id: mongoose.toObjectId(id), _user: user.id })
       .populate('_sharedWith', '-local.password')
       .sort({name: 1})
       .select('-__v')
@@ -308,6 +308,23 @@ collectionSchema.statics.findPublicSchema = function (id, cb) {
       .populate('_user', '-local.password')
       .sort({name: 1})
       .select('-__v -_sharedWith -publicSchema');
+};
+
+collectionSchema.statics.findSharedCollections = function (user, cb) {
+  this.find({_sharedWith: user.id}, cb)
+      .populate('_sharedWith._id', '')
+      .populate('_user', '_id local.email')
+      .sort({name: 1})
+      .select('name _user _sharedWith');
+};
+
+collectionSchema.statics.findSharedCollection = function (user, id, cb) {
+  if (mongoose.checkCorrectIds([id], cb))
+  this.findOne({_id: mongoose.toObjectId(id), _sharedWith: user.id}, cb)
+      .populate('_sharedWith._id', '')
+      .populate('_user', '_id local.email')
+      .sort({name: 1})
+      .select('name _user _sharedWith');
 };
 
 

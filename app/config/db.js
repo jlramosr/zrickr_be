@@ -7,20 +7,28 @@ var pass_dbtest = '1234';
 var env         = process.env.NODE_ENV || 'development';
 var err         = false;
 
+var errors = require('../config/error');
 var logger   = require("../config/logger");
+
+var _ = require("lodash");
 
 var mongoose = {
   db:           require('mongoose'),
   timestamps:   require('mongoose-timestamp'),
   bcrypt:       require('bcrypt'),
-  toObjectId:
-    function(id) {
-      return this.db.Types.ObjectId(id);
-    },
-  isValidId:
-    function(id) {
-      return this.db.Types.ObjectId.isValid(id);
+
+  toObjectId: function(id) {
+    return this.db.Types.ObjectId(id);
+  },
+
+  checkCorrectIds: function(ids, cb) {
+    var db = this.db;
+    if (_.findIndex(ids, function(id) {return !db.Types.ObjectId.isValid(id);}) >= 0) {
+      cb (new errors.Http400Error('Some id argument passed is not a single String of 12 bytes or a string of 24 hex characters'));
+      return false;
     }
+    return true;
+  }
 
 }
 

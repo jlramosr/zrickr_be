@@ -96,17 +96,21 @@ Is necessary to introduce Login Process Token returned in Header.Authorization =
 
 **`GET api/public/collections/ID`**: Return public collection schema indenfied by ID parameter
 
+**`GET api/shared/collections`**: Return collections shared with the user
+
+**`GET api/shared/collections/ID`**: Return the collection shared with the user indenfied by ID parameter
+
 **`GET api/zrickers`**: Return all user zrickers of all collections
 
 **`GET api/zrickers/COLID`**: Return all user zrickers of a collection identified by COL id parameter
 
-**`GET api/zrickers/COLID/ID`**: Return user zrickr identified by ID parameter of a collection identified by COL id parameter
+**`GET api/zrickers/COLID/ID`**: Return user zrickr identified by ID parameter of a collection identified by COLID parameter
 
-**`GET api/films`**: Return all user films
+**`GET api/shared/zrickers`**: Return all zrickers of all collections shared with the user
 
-**`GET api/films/ID`**: Return user film identified by ID parameter
+**`GET api/shared/zrickers/COLID`**: Return all zrickers of a shared collection identified by COLID parameter
 
-**`POST api/films {"title": "Titanic", "year": 1999}`**: Insert an user film
+**`GET api/shared/zrickers/COLID/ID`**: Return zrickr identified by ID parameter of a shared collection identified by COLID parameter
 
 **`POST api/collections
 {
@@ -164,10 +168,6 @@ Is necessary to introduce Login Process Token returned in Header.Authorization =
 
 **`PUT profile/update { "local": {"password": "12345"} }`**: Update user information
 
-**`PUT api/films {"genre": "Drama"}`**: Update all user films
-
-**`PUT api/films/ID {"genre": "Drama"}`**: Update user film identified by ID parameter
-
 **`DELETE api/collections`**: Delete all user collections
 
 **`DELETE api/collections/ID`**: Delete user collection identified by ID parameter
@@ -178,7 +178,6 @@ Is necessary to introduce Login Process Token returned in Header.Authorization =
 
 **`DELETE api/zrickers/COLID/ID`**: Delete zrickr identified by ID parameter of a collection identified by COL id parameter
 
-**`DELETE api/films/ID`**: Delete user film identified by ID parameter
 
 ### Fields types
 

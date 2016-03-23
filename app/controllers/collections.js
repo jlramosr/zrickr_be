@@ -9,21 +9,20 @@ var express = require('express');
 
 var controller = {
 
-  getCollections: function (req, res, next) {
+  get: function (req, res, next) {
     var id    = req.params.id;
     var user  = req.user;
 
     //All User Collections
     if (id === undefined) {
-      model.collectionsModel.findCollectionsByUser(user, function(err, collections) {
+      model.collectionsModel.findCollections(user, function(err, collections) {
     		if (err) return errors.json(res, err);
     		res.status(200).json(collections);
     	});
     }
     //User Collection by id
     else {
-      model.collectionsModel.findCollectionByUserAndId(user, id, function (err, collection) {
-        console.log("HOLA", err);
+      model.collectionsModel.findCollection(user, id, function (err, collection) {
         if (err) return errors.json(res, err);
         if (!collection)
           return errors.json(res, new errors.Http404Error('Collection ' + id + ' does not exist'));
@@ -32,7 +31,7 @@ var controller = {
     }
   },
 
-  getPublicCollections: function (req, res, next) {
+  getPublic: function (req, res, next) {
     var id    = req.params.id;
 
     //All Public Schema Collections
@@ -48,6 +47,28 @@ var controller = {
         if (err) return errors.json(res, err);
         if (!collection)
           return errors.json(res, new errors.Http404Error('Public collection schema ' + id + ' does not exist'));
+        res.status(200).json(collection);
+      });
+    }
+  },
+
+  getShared: function (req, res, next) {
+    var id    = req.params.id;
+    var user  = req.user;
+
+    //All Shared Collections with the user
+    if (id === undefined) {
+      model.collectionsModel.findSharedCollections(user, function(err, collections) {
+        if (err) return errors.json(res, err);
+        res.status(200).json(collections);
+      });
+    }
+    //Shared Collection by id
+    else {
+      model.collectionsModel.findSharedCollection(user, id, function (err, collection) {
+        if (err) return errors.json(res, err);
+        if (!collection)
+          return errors.json(res, new errors.Http404Error('Shared collection ' + id + ' does not exist'));
         res.status(200).json(collection);
       });
     }
@@ -90,10 +111,10 @@ var controller = {
 
     //All User Collections
     if (!id) {
-      modelZ.zrickersModel.findZrickersByUser(user).remove(function(err, result) {
+      modelZ.zrickersModel.findZrickers(user).remove(function(err, result) {
         if (err) return errors.json(res, err);
         var numAffectedChildren = result.result.n;
-        model.collectionsModel.findCollectionsByUser(user).remove(function(err, result) {
+        model.collectionsModel.findCollections(user).remove(function(err, result) {
           if (err) return errors.json(res, err);
           res.status(200).json({numAffected: result.result.n, numAffectedZrickers: numAffectedChildren});
         });
@@ -101,10 +122,10 @@ var controller = {
     }
     //User Collection by id
     else {
-      model.collectionsModel.findCollectionByUserAndId(user, id, function(err, collection) {
+      model.collectionsModel.findCollection(user, id, function(err, collection) {
         if (err) return errors.json(res, err);
         var collectionId = collection._id;
-        modelZ.zrickersModel.findZrickersByUserAndCollection(user, collectionId).remove(function(err, result) {
+        modelZ.zrickersModel.findZrickersCollection(user, collectionId).remove(function(err, result) {
           var numAffectedChildren = result.result.n;
           collection.remove(function(err, removedCollection) {
             if (err) return errors.json(res, err);

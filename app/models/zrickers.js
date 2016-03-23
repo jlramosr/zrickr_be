@@ -76,7 +76,7 @@ var checkRelationalFields = function(collection, values, user) {
           var promise = new Promise(function(resolve,reject) {
             if (zrickrId.length <= 0)
               resolve('Empty referenced zrickr of collection ' + collectionId + ' not found for field ' + nameField);
-            model.zrickersModel.findZrickrByUserAndCollectionAndId(user, collectionId, zrickrId, function(err, zrickr) {
+            model.zrickersModel.findZrickrCollection(user, collectionId, zrickrId, function(err, zrickr) {
               if (err || !zrickr) resolve('Referenced ' + zrickrId + ' zrickr of collection ' + collectionId + ' not found for field ' + nameField);
               resolve();
             });
@@ -194,9 +194,9 @@ zrickrSchema.statics.generateZrickr = function (json, collection) {
       zrickr.values[value.name] = json[value.name];
   });
   return zrickr;
-}
+};
 
-zrickrSchema.statics.findZrickersByUser = function (user, cb) {
+zrickrSchema.statics.findZrickers = function (user, cb) {
   this.find({})
       .populate({
         path: '_collection',
@@ -208,9 +208,9 @@ zrickrSchema.statics.findZrickersByUser = function (user, cb) {
       .exec(function(err, zrickers) {
         cb(err, _.filter(zrickers, function(o) {return o._collection != null}));
       });
-}
+};
 
-zrickrSchema.statics.removeZrickersByUser = function (user, cb) {
+zrickrSchema.statics.removeZrickers = function (user, cb) {
   this.find({})
       .populate({
         path: '_collection',
@@ -229,10 +229,11 @@ zrickrSchema.statics.removeZrickersByUser = function (user, cb) {
           });
         }
       });
-}
+};
 
-zrickrSchema.statics.findZrickersByUserAndCollection = function (user, collectionId, cb) {
-  this.find({_collection: collectionId})
+zrickrSchema.statics.findZrickersCollection = function (user, collectionId, cb) {
+  if (mongoose.checkCorrectIds([collectionId], cb))
+  this.find({_collection: mongoose.toObjectId(collectionId)})
       .populate({
         path: '_collection',
         match: {_user: user.id },
@@ -243,10 +244,11 @@ zrickrSchema.statics.findZrickersByUserAndCollection = function (user, collectio
       .exec(function(err, zrickers) {
         cb(err, _.filter(zrickers, function(o) {return o._collection != null}));
       });
-}
+};
 
-zrickrSchema.statics.removeZrickersByUserAndCollection = function (user, collectionId, cb) {
-  this.find({_collection: collectionId})
+zrickrSchema.statics.removeZrickersCollection = function (user, collectionId, cb) {
+  if (mongoose.checkCorrectIds([collectionId], cb))
+  this.find({_collection: mongoose.toObjectId(collectionId)})
       .populate({
         path: '_collection',
         match: {_user: user.id },
@@ -264,10 +266,11 @@ zrickrSchema.statics.removeZrickersByUserAndCollection = function (user, collect
           });
         }
       });
-}
+};
 
-zrickrSchema.statics.findZrickrByUserAndCollectionAndId = function (user, collectionId, id, cb) {
-  this.findOne({_id: id, _collection: collectionId})
+zrickrSchema.statics.findZrickrCollection = function (user, collectionId, id, cb) {
+  if (mongoose.checkCorrectIds([id, collectionId], cb))
+  this.findOne({_id: mongoose.toObjectId(id), _collection: mongoose.toObjectId(collectionId)})
       .populate({
         path: '_collection',
         match: { _user: user.id },
@@ -280,10 +283,11 @@ zrickrSchema.statics.findZrickrByUserAndCollectionAndId = function (user, collec
         else if (zrickr._collection === null) zrickr = null;
         else cb(err, zrickr);
       });
-}
+};
 
-zrickrSchema.statics.removeZrickrByUserAndCollectionAndId = function (user, collectionId, id, cb) {
-  this.findOne({_id: id, _collection: collectionId})
+zrickrSchema.statics.removeZrickrCollection = function (user, collectionId, id, cb) {
+  if (mongoose.checkCorrectIds([id, collectionId], cb))
+  this.findOne({_id: mongoose.toObjectId(id), _collection: mongoose.toObjectId(collectionId)})
       .populate({
         path: '_collection',
         match: { _user: user.id },
@@ -298,7 +302,54 @@ zrickrSchema.statics.removeZrickrByUserAndCollectionAndId = function (user, coll
           else cb(err, 1);
         });
       });
-}
+};
+
+zrickrSchema.statics.findSharedZrickers = function (user, cb) {
+  this.find({})
+      .populate({
+        path: '_collection',
+        match: {_sharedWith: user.id},
+        select: 'name _user',
+        options: {}
+      })
+      .select('slug values _collection _user')
+      .exec(function(err, zrickers) {
+        cb(err, _.filter(zrickers, function(o) {return o._collection != null}));
+      });
+};
+
+zrickrSchema.statics.findSharedZrickersCollection = function (user, collectionId, cb) {
+  if (mongoose.checkCorrectIds([collectionId], cb))
+  this.find({_collection: mongoose.toObjectId(collectionId)})
+      .populate({
+        path: '_collection',
+        match: {_sharedWith: user.id},
+        select: 'name',
+        options: {}
+      })
+      .select('slug values _collection _user')
+      .exec(function(err, zrickers) {
+        cb(err, _.filter(zrickers, function(o) {return o._collection != null}));
+      });
+};
+
+zrickrSchema.statics.findSharedZrickrCollection = function (user, collectionId, id, cb) {
+  if (mongoose.checkCorrectIds([id, collectionId], cb))
+  this.findOne({_id: mongoose.toObjectId(id), _collection: mongoose.toObjectId(collectionId)})
+      .populate({
+        path: '_collection',
+        match: { _sharedWith: user.id },
+        select: 'name _collection',
+        options: {}
+      })
+      .select('slug values _collection _user')
+      .exec(function(err, zrickr) {
+        if (err || !zrickr) cb(err, zrickr);
+        else if (zrickr._collection === null) zrickr = null;
+        else cb(err, zrickr);
+      });
+};
+
 
 
 
